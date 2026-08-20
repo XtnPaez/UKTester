@@ -1,31 +1,28 @@
 # UK Tester
 
-![Status](https://img.shields.io/badge/status-bloqueado-red)
+![Status](https://img.shields.io/badge/status-en%20progreso-brightgreen)
 ![Unit](https://img.shields.io/badge/unit-2.3.7%20Health%20Facility%20Mapping-blue)
 ![Round](https://img.shields.io/badge/round-first%20submission-lightgrey)
 ![Languages](https://img.shields.io/badge/code-R%20%7C%20Python-informational)
 
 ## Última actualización de sesión
 
-**Fecha:** 13/08/2026
+**Fecha:** 20/08/2026
 
 **Qué hicimos:**
-- Se cargaron y leyeron los 4 documentos del Developer para la Unidad 2.3.7 (Acceptance Criteria, Methodology, R User Guide, Python User Guide).
-- Se generó el README inicial del proyecto.
-- Se detectó que el repositorio de código (https://github.com/datasciencecampus/geospatial-healthcare-facilities) dejó de estar disponible (404) y que se perdió el acceso como colaborador a la organización Data Science Campus, pese a que el 12/08 el acceso funcionaba correctamente (incluido el PR #130).
-- Se envió mail a Alex (Developer contact) reportando el problema con evidencia (timeline de acceso, 404, pérdida de membership, org y otros repos funcionando con normalidad). Sin respuesta aún.
-- Se recibió una segunda tanda de los mismos 4 documentos (carpeta "Tester Files"), esta vez con las imágenes embebidas. Se comparó contra la versión anterior: mismo contenido textual y misma versión (07/08/2026 - First Submission); la única diferencia es que esta carpeta sí incluye capturas y diagramas que antes solo figuraban como texto alternativo en comentarios.
-- Se verificó, con evidencia visual, que el alt text declarado en R User Guide y Python User Guide coincide con las imágenes reales (diagramas de flujo y capturas de WorldPop/HDX).
-- Se confirmó que ninguno de los 4 documentos es el TdR (Terms of Reference) de la Unidad — no fue provisto hasta el momento.
-- Se armó tabla comparativa de diferencias de implementación entre el workflow R y Python (ver sección "Diferencias R vs Python").
+- Se armó el slide de avance de testing para el Cross-Partnership Quarterly Working Group (25/08), usando el template oficial de marca (layout de tres columnas: qué funciona bien / qué fue desafiante / próximos pasos).
+- Se confirmó que el acceso al repositorio vía el equipo SIADS es **completo, no solo de lectura por navegador**: se pudo clonar `geospatial-healthcare-facilities` sin inconvenientes desde la máquina de Páez.
+- Código de la Unidad ya disponible localmente para iniciar el testing de implementación.
 
-**Bloqueante activo:**
-Sin acceso al repositorio de código, no se puede avanzar con el testing de implementación (checklist de código, ejecución de pipelines, pruebas end-to-end). A la espera de respuesta de Alex. Pendiente de reunión de equipo (13/08 14hs) por si alguna team leader del equipo Argentina tiene otra vía de resolución.
+**Bloqueante resuelto:**
+El acceso al repositorio, restablecido el 19/08 vía SIADS, quedó confirmado como funcional al 100% tras el clonado exitoso.
 
 **Próximos pasos pendientes:**
-- Esperar respuesta sobre el acceso al repositorio (o resolución alternativa surgida en la reunión de equipo).
+- Definir por dónde arrancar el testing de implementación: exploración de estructura general, checklist de código, o alguna de las 3 pruebas adicionales pedidas por el Developer.
+- Definir cómo se comparte el código para su revisión (archivos puntuales o carpetas completas).
+- Confirmar deadline real del slide para el Working Group del 25/08.
 - Conseguir el TdR de la Unidad si el equipo logra localizarlo.
-- Una vez restablecido el acceso: iniciar checklist de código (R y Python) y las 3 pruebas adicionales pedidas por el Developer (workflow R/Python, corrida subnacional en Argentina, workflow principal a nivel país).
+- Iniciar checklist de código (R y Python) y las 3 pruebas adicionales pedidas por el Developer (workflow R/Python, corrida subnacional en Argentina, workflow principal a nivel país).
 
 ---
 
