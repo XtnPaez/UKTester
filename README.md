@@ -7,7 +7,7 @@
 
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Código accesible, **entorno técnico R completo y verificado**. Falta entorno Python, configuración con caso de prueba, y checklist técnico de código.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Código accesible, **entorno técnico R completo y verificado**, `config.yaml` revisado y correcto para Malawi. Falta resolver la fuente de datos de centros de salud antes de poder correr el pipeline.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -36,8 +36,9 @@
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible y una primera lectura del código.
+- **Bloqueante inmediato:** `config.yaml` (Malawi) ya está listo, pero `facility_list_filepath` / `facility_list_url` están vacíos — sin esto, `01_preprocess.R` falla. Conseguir el archivo de centros de salud de Malawi (fuente sugerida por el Developer: Malawi Master Health Facility Register, `https://zipatala.health.gov.mw/facilities`, o alternativa healthsites.io) antes de correr nada.
+- Correr `01_preprocess.R` — implica descargas pesadas (WorldPop, PBF de OSM); no arrancar si hay riesgo de que la máquina se apague a mitad de la descarga.
 - Puesta a punto de entorno técnico Python — no iniciada.
-- Configurar `config.yaml` con caso de prueba (Malawi) y correr el pipeline R end-to-end (preprocesamiento, matrices de tiempo de viaje, dashboard).
 - Checklist de código (R y Python) del Testing Recommendation Template.
 - Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica.
 - Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio.
@@ -108,4 +109,4 @@ documentación → requisitos → criterios verificables → implementación →
 - **13/08:** documentación inicial leída. Detectado bloqueo de acceso al repo.
 - **19/08:** acceso restablecido vía equipo SIADS.
 - **20/08:** clonado del repo confirmado exitoso. Slide inicial armado.
-- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta en notebook sin admin (R, Java 21, Quarto, paquetes). Próximo paso: configurar caso Malawi y correr el pipeline.
+- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta en notebook sin admin (R, Java 21, Quarto, paquetes). `config.yaml` para Malawi revisado y correcto. Identificado bloqueante inmediato: falta fuente de datos de centros de salud antes de poder correr `01_preprocess.R`. Sesión cortada por desconexión de notebook — descarga de datos pesados pospuesta a próxima sesión con más tiempo disponible.
