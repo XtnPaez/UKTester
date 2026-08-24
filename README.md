@@ -7,7 +7,7 @@
 
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Código accesible, entornos técnicos en puesta a punto. Sin empezar checklist técnico de código todavía.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Código accesible, **entorno técnico R completo y verificado**. Falta entorno Python, configuración con caso de prueba, y checklist técnico de código.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -31,14 +31,16 @@
 - Los 6 documentos de referencia (Acceptance Criteria, Methodology, R User Guide, Python User Guide, Content Testing Quick Guide, Testing Recommendation Template).
 - Acceso completo y confirmado al repositorio de código (clonado exitoso, 20/08).
 - Slide de avance de testing para el Working Group, listo y aprobado (ver carpeta `entregables/`).
+- **Entorno técnico R completo y verificado**, instalado sin permisos de administrador: R 4.4.0, Java 21 (vía rJavaEnv), Quarto 1.9.38 (portable), rJava, y los 18 paquetes R requeridos por la guía. Paquete local del dashboard (`src/r/dashboard`) carga sin errores.
 
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible y una primera lectura del código.
-- Puesta a punto de entornos técnicos (R y Python) — en curso.
+- Puesta a punto de entorno técnico Python — no iniciada.
+- Configurar `config.yaml` con caso de prueba (Malawi) y correr el pipeline R end-to-end (preprocesamiento, matrices de tiempo de viaje, dashboard).
 - Checklist de código (R y Python) del Testing Recommendation Template.
 - Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica.
-- Corridas de prueba: caso validado (Malawi) para confirmar funcionamiento, y luego Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio.
+- Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio.
 - Reunión con la NSO para acordar recomendación (paso 4b).
 - Completar y subir el Testing Recommendation Template.
 
@@ -47,6 +49,7 @@
 - Se prioriza el workflow en **R antes que Python**, siguiendo el orden sugerido por el propio Developer en el Acceptance Criteria Template.
 - Para las primeras corridas de prueba se usa **Malawi** (caso ya validado por el Developer) antes que Argentina, para aislar problemas de instalación de problemas de datos.
 - El deadline del viernes 28/08 es un acuerdo informal con la jefa de equipo Argentina, no el deadline oficial (que es el 4/09) — se mantiene así frente al equipo local, sin comunicarlo como oficial hacia UK.
+- El testeo se hace en notebook personal sin permisos de administrador; todo el entorno técnico (R, Java, Quarto, paquetes) se instaló en el perfil de usuario (vía versiones portables y `install.packages()`), sin necesitar admin en ningún paso.
 
 ## Documentos recibidos vs TdR
 
@@ -105,4 +108,4 @@ documentación → requisitos → criterios verificables → implementación →
 - **13/08:** documentación inicial leída. Detectado bloqueo de acceso al repo.
 - **19/08:** acceso restablecido vía equipo SIADS.
 - **20/08:** clonado del repo confirmado exitoso. Slide inicial armado.
-- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group.
+- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta en notebook sin admin (R, Java 21, Quarto, paquetes). Próximo paso: configurar caso Malawi y correr el pipeline.
