@@ -1,0 +1,8 @@
+Lo que viene funcionando bien:
+La documentación que nos mandó el equipo desarrollador está completa y bien organizada, así que pudimos entender bien qué es la herramienta antes de meternos con el código. Ya se resolvió el problema de acceso al repositorio, así que hoy tenemos todo lo que necesitamos para trabajar. Y la comunicación con el equipo de Reino Unido fue buena: cuando hubo un problema, respondieron rápido.
+
+Lo que costó más:
+Perdimos una semana entera sin poder tocar el código, por un tema de permisos de acceso que no dependía de nosotros. Además, no encontramos un documento que diga exactamente qué le pidieron al equipo desarrollador antes de que armara la herramienta, así que estamos trabajando con lo que entendemos que era la idea original, en base a lo que sí tenemos. Y como la herramienta viene armada en dos lenguajes de programación distintos, primero hay que dejar preparado el terreno técnico para poder correr cada uno, antes de empezar a probar de verdad.
+
+Lo que sigue:
+Ahora hay que confirmar que las dos versiones de la herramienta hacen exactamente lo mismo, sin diferencias entre una y otra. Después la vamos a poner a prueba con datos pesados, idealmente usando el caso de Argentina, para ver cómo responde. Y para cerrar, armamos el informe final con todo lo que encontramos.
