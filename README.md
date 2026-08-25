@@ -7,7 +7,7 @@
 
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Pipeline R validado end-to-end con datos reales (caso Malawi)**: preprocesamiento, matrices de tiempo de viaje, y outputs generados correctamente. Falta ver el dashboard, entorno Python, y checklist formal de código.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Workflow R validado 100% end-to-end** (preprocesamiento → matrices de tiempo → dashboard interactivo), con datos reales del caso Malawi. Falta entorno Python y checklist formal de código.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -36,6 +36,7 @@
   - `01_preprocess.R`: boundaries (geoBoundaries ADM1), facilities (healthsites.io vía HDX, 149 filas sin coordenadas descartadas automáticamente — comportamiento esperado), y los 6 rasters demográficos de WorldPop + stack combinado. Todo generado correctamente.
   - `02_ttm.R`: red de rutas construida en 66.57s, matriz de tiempo de viaje calculada en 28.1s. Outputs `malawi_closest_times.csv` (~95MB) y `.parquet` (~13MB) generados sin errores.
   - Esto constituye evidencia directa para el criterio de testing del Testing Recommendation Template: *"You, the Tester, have tested the code from start to finish using one or more realistic end-to-end tests"* — con datos reales, no ficticios.
+- **Dashboard R confirmado visualmente (24/08):** `quarto preview` levantó el dashboard Shiny sin errores. Controles de distrito, tipo de facility, distancia y grupo demográfico funcionan como documenta la Methodology. Probado con Central Region: 10 hospitales, 87% de población fuera de 8km, popups de facility individual funcionando.
 
 ## Hallazgos para Proposed Amendments (Testing Recommendation Template)
 
@@ -46,10 +47,9 @@
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible y una primera lectura del código.
-- Ver el dashboard R corriendo (`quarto preview`) — último paso del workflow R, pendiente de esta misma sesión.
 - Puesta a punto de entorno técnico Python — no iniciada.
 - Repetir la validación end-to-end en Python, con Malawi como mismo caso de control.
-- Checklist formal de código (R y Python) del Testing Recommendation Template — la corrida de hoy es evidencia para una fila puntual, falta completar el resto.
+- Checklist formal de código (R y Python) del Testing Recommendation Template — falta revisar el código fuente en sí (estilo, comentarios, documentación de funciones), más allá de que ya corre.
 - Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica.
 - Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio. Probablemente requiera boundaries a nivel ADM2, no ADM1 (usado hoy solo para validar funcionamiento).
 - Reunión con la NSO para acordar recomendación (paso 4b).
@@ -123,4 +123,4 @@ documentación → requisitos → criterios verificables → implementación →
 - **13/08:** documentación inicial leída. Detectado bloqueo de acceso al repo.
 - **19/08:** acceso restablecido vía equipo SIADS.
 - **20/08:** clonado del repo confirmado exitoso. Slide inicial armado.
-- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta. Resuelto el bloqueante de datos de facilities (healthsites.io vía HDX) y de boundaries (geoBoundaries local, tras fallo de Overpass API). **Pipeline R corrido end-to-end con éxito**: preprocesamiento y matrices de tiempo de viaje completos, con datos reales de Malawi. Identificados 2 hallazgos menores para Proposed Amendments. Pendiente: ver el dashboard.
+- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta. Resuelto el bloqueante de datos de facilities (healthsites.io vía HDX) y de boundaries (geoBoundaries local, tras fallo de Overpass API). **Pipeline R corrido end-to-end con éxito**: preprocesamiento, matrices de tiempo de viaje, y **dashboard confirmado visualmente**. Workflow R 100% validado. Identificados 4 hallazgos menores para Proposed Amendments. Creado `tester.md` como borrador vivo del Testing Recommendation Template.

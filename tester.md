@@ -38,6 +38,7 @@
 | El pipeline no crea automáticamente las carpetas de salida (`data/boundaries/`, `data/poi/`, `data/population/`, etc.). Si no existen previamente, `01_preprocess.R` falla con error de archivo/directorio no encontrado en vez de crearlas o dar un mensaje claro de qué falta. | Minor |
 | La R User Guide documenta las columnas del CSV de healthsites.io como `x`, `y`, `osm_id` (minúscula). El archivo real descargado de HDX trae `X`, `Y` en mayúscula. No rompió el pipeline, pero la documentación no coincide exactamente con el dato real descargado. | Minor |
 | La descarga automática de boundaries desde OpenStreetMap (Overpass API) falló por timeout/error 500 en nuestra prueba. Se resolvió usando un archivo local de geoBoundaries como fallback (camino ya contemplado por la guía), pero vale la pena que el Developer sepa que la vía automática puede no ser confiable y ofrecer el fallback más explícitamente en la documentación. | Minor |
+| El campo `ownership` aparece como `NA` en el popup del dashboard para varias facilities. No es un bug del código — el dato no viene completo en la fuente healthsites.io usada para esta prueba — pero podría valer una nota en la documentación aclarando que la calidad de ese campo depende de la fuente elegida. | Minor / nota |
 
 ---
 
@@ -94,13 +95,13 @@
 | --- | --- | --- |
 | Source code available, complies with QA checklist for code | *(pendiente)* | |
 | README submitted, easy to follow | *(pendiente)* | |
-| Interface clear and easy to understand | *(pendiente — falta ver el dashboard)* | |
-| Expected outputs clearly communicated | *(pendiente)* | |
+| Interface clear and easy to understand | ✅ Confirmado visualmente (24/08) — controles de distrito, tipo de facility, distancia y grupo demográfico funcionan como documenta la Methodology | |
+| Expected outputs clearly communicated | ✅ Panel derecho muestra número de facilities, % de población fuera de rango, y población estimada más allá del umbral — coincide con la documentación | |
 | Sensitive input data omitted/replaced | ✅ No sensitive data included (confirmado también por el propio Developer en Acceptance Criteria) | |
 | Input data available to download | *(pendiente)* | |
-| End-to-end test by Tester | *(pendiente — corresponde una vez visto el dashboard)* | |
+| End-to-end test by Tester | ✅ **PASS** — dashboard R corrido y verificado visualmente con datos reales de Malawi (Central Region, 10 hospitales, 87% de población fuera de 8km) | Ver capturas de sesión 24/08 |
 | Tested with alternative input data | *(pendiente)* | |
-| Compatible desktop/tablet/smartphone | *(pendiente)* | |
+| Compatible desktop/tablet/smartphone | *(pendiente — probado solo en desktop hasta ahora)* | |
 | Runs independently of OS | ✅ Corrido en Windows sin problemas hasta ahora | |
 | Memory/processing efficiency | ✅ Malawi (país chico) corrió rápido y sin errores de memoria; pendiente confirmar con Argentina (país grande) | |
 
