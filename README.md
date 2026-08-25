@@ -7,7 +7,7 @@
 
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Código accesible, **entorno técnico R completo y verificado**, `config.yaml` revisado y correcto para Malawi. Falta resolver la fuente de datos de centros de salud antes de poder correr el pipeline.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Pipeline R validado end-to-end con datos reales (caso Malawi)**: preprocesamiento, matrices de tiempo de viaje, y outputs generados correctamente. Falta ver el dashboard, entorno Python, y checklist formal de código.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -31,17 +31,27 @@
 - Los 6 documentos de referencia (Acceptance Criteria, Methodology, R User Guide, Python User Guide, Content Testing Quick Guide, Testing Recommendation Template).
 - Acceso completo y confirmado al repositorio de código (clonado exitoso, 20/08).
 - Slide de avance de testing para el Working Group, listo y aprobado (ver carpeta `entregables/`).
-- **Entorno técnico R completo y verificado**, instalado sin permisos de administrador: R 4.4.0, Java 21 (vía rJavaEnv), Quarto 1.9.38 (portable), rJava, y los 18 paquetes R requeridos por la guía. Paquete local del dashboard (`src/r/dashboard`) carga sin errores.
+- Entorno técnico R completo y verificado, instalado sin permisos de administrador: R 4.4.0, Java 21 (vía rJavaEnv), Quarto 1.9.38 (portable), rJava, y los 18 paquetes R requeridos por la guía.
+- **Pipeline R validado end-to-end con datos reales (caso Malawi, 24/08):**
+  - `01_preprocess.R`: boundaries (geoBoundaries ADM1), facilities (healthsites.io vía HDX, 149 filas sin coordenadas descartadas automáticamente — comportamiento esperado), y los 6 rasters demográficos de WorldPop + stack combinado. Todo generado correctamente.
+  - `02_ttm.R`: red de rutas construida en 66.57s, matriz de tiempo de viaje calculada en 28.1s. Outputs `malawi_closest_times.csv` (~95MB) y `.parquet` (~13MB) generados sin errores.
+  - Esto constituye evidencia directa para el criterio de testing del Testing Recommendation Template: *"You, the Tester, have tested the code from start to finish using one or more realistic end-to-end tests"* — con datos reales, no ficticios.
+
+## Hallazgos para Proposed Amendments (Testing Recommendation Template)
+
+- **Minor:** el pipeline no crea automáticamente las carpetas de salida (`data/boundaries/`, `data/poi/`, etc.); si no existen, `01_preprocess.R` falla con error de archivo no encontrado en vez de crearlas o advertir claramente.
+- **Minor:** la R User Guide documenta las columnas del CSV de healthsites como `x`, `y`, `osm_id` en minúscula; el archivo real descargado de HDX trae `X`, `Y` en mayúscula. No rompió el pipeline, pero la documentación no coincide exactamente con el dato real.
+- **Para nota, no necesariamente amendment:** la descarga automática de boundaries desde OpenStreetMap (Overpass API) falló por timeout/500 en nuestra prueba; se resolvió con archivo local de geoBoundaries como fallback (ya contemplado por la guía), pero vale la pena que el Developer sepa que la vía automática puede no ser confiable.
 
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible y una primera lectura del código.
-- **Bloqueante inmediato:** `config.yaml` (Malawi) ya está listo, pero `facility_list_filepath` / `facility_list_url` están vacíos — sin esto, `01_preprocess.R` falla. Conseguir el archivo de centros de salud de Malawi (fuente sugerida por el Developer: Malawi Master Health Facility Register, `https://zipatala.health.gov.mw/facilities`, o alternativa healthsites.io) antes de correr nada.
-- Correr `01_preprocess.R` — implica descargas pesadas (WorldPop, PBF de OSM); no arrancar si hay riesgo de que la máquina se apague a mitad de la descarga.
+- Ver el dashboard R corriendo (`quarto preview`) — último paso del workflow R, pendiente de esta misma sesión.
 - Puesta a punto de entorno técnico Python — no iniciada.
-- Checklist de código (R y Python) del Testing Recommendation Template.
+- Repetir la validación end-to-end en Python, con Malawi como mismo caso de control.
+- Checklist formal de código (R y Python) del Testing Recommendation Template — la corrida de hoy es evidencia para una fila puntual, falta completar el resto.
 - Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica.
-- Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio.
+- Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio. Probablemente requiera boundaries a nivel ADM2, no ADM1 (usado hoy solo para validar funcionamiento).
 - Reunión con la NSO para acordar recomendación (paso 4b).
 - Completar y subir el Testing Recommendation Template.
 
@@ -83,6 +93,10 @@ Estos mismos documentos también se conservan como copia en este repositorio, de
 
 Carpeta `entregables/`: contiene los archivos finales para enviar (por ejemplo, `slide.pptx` con el avance de testing para el Working Group del 25/08, y en su momento el Testing Recommendation Template completo).
 
+## Borrador del testeo (tester.md)
+
+`tester.md`, en la raíz del repo: documento vivo donde vamos anotando, a medida que testeamos, todo lo que eventualmente va al **Testing Recommendation Template** oficial (hallazgos, evidencia de tests end-to-end, Proposed Amendments, checklists). Estructurado con las mismas secciones que el template real, para volcarlo directo cuando el testing esté avanzado o cerrado, sin tener que reconstruir memoria.
+
 ## Unidad bajo revisión
 
 **2.3.7 Health Facility Mapping** — Developer: UK ONS
@@ -109,4 +123,4 @@ documentación → requisitos → criterios verificables → implementación →
 - **13/08:** documentación inicial leída. Detectado bloqueo de acceso al repo.
 - **19/08:** acceso restablecido vía equipo SIADS.
 - **20/08:** clonado del repo confirmado exitoso. Slide inicial armado.
-- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta en notebook sin admin (R, Java 21, Quarto, paquetes). `config.yaml` para Malawi revisado y correcto. Identificado bloqueante inmediato: falta fuente de datos de centros de salud antes de poder correr `01_preprocess.R`. Sesión cortada por desconexión de notebook — descarga de datos pesados pospuesta a próxima sesión con más tiempo disponible.
+- **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta. Resuelto el bloqueante de datos de facilities (healthsites.io vía HDX) y de boundaries (geoBoundaries local, tras fallo de Overpass API). **Pipeline R corrido end-to-end con éxito**: preprocesamiento y matrices de tiempo de viaje completos, con datos reales de Malawi. Identificados 2 hallazgos menores para Proposed Amendments. Pendiente: ver el dashboard.
