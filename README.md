@@ -7,7 +7,7 @@
 
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Workflow R validado 100% end-to-end.** **Workflow Python en curso**: entorno completo (vía Miniconda) y `data_preparation.py` validado con datos reales de Malawi. Falta `pop_travel_times.py` y el dashboard Python.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Workflow R validado 100% end-to-end. Workflow Python validado 100% end-to-end** (data_preparation → travel times → dashboard, con datos reales de Malawi). Falta checklist formal de código y corridas con Argentina.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -39,6 +39,8 @@
 - **Dashboard R confirmado visualmente (24/08):** `quarto preview` levantó el dashboard Shiny sin errores. Controles de distrito, tipo de facility, distancia y grupo demográfico funcionan como documenta la Methodology. Probado con Central Region: 10 hospitales, 87% de población fuera de 8km, popups de facility individual funcionando.
 - **Entorno técnico Python completo y verificado (25/08):** Python 3.11.16 vía Miniconda (instalado sin admin, modo "Just Me"), entorno `hc-mapping` creado desde `environment.yml` con todas las dependencias de conda-forge (r5py, osmnx, pyrosm, cykhash, geopandas, etc.) más `pip_system_certs` agregado a mano.
 - **`data_preparation.py` validado end-to-end con datos reales (Malawi, 25/08):** exit code 0. Los 5 outputs esperados por la guía confirmados: PBF de OSM (154MB), boundaries ADM1/ADM2 de geoBoundaries, `master_population_grid_data.gpkg` (30MB), `healthcare_facility_data.gpkg` (mismo CSV healthsites.io reutilizado de R, convertido a GeoJSON con columna `id` renombrada).
+- **`pop_travel_times.py` validado end-to-end con datos reales (Malawi, 25/08):** exit code 0. Cálculo de tiempos de viaje en 75.64s (comparable a R). Outputs generados: `bicycle_travel_times_to_All healthcare facilities.parquet` (467KB) + 4 mapas HTML (nacional + Central/Northern/Southern Region), coincidiendo con lo documentado por la guía.
+- **Dashboard Python confirmado visualmente (25/08):** `quarto render` + `shiny run` funcionaron sin errores. Controles equivalentes a R (admin area, facility type, distance threshold, demographic group, show outside toggle, facility breakdown). Probado con vista nacional, hospital, 10km: 82.7% de población fuera de rango, 24,117,974 personas estimadas más allá del umbral. **Workflow Python 100% validado end-to-end.**
 
 ## Hallazgos para Proposed Amendments (Testing Recommendation Template)
 
@@ -50,13 +52,16 @@
 - **Minor:** `pyproject.toml` no declara `[project]`, por lo que `pip install -e .` (paso documentado en la guía) instala un paquete vacío "UNKNOWN" en vez del real. Hubo que usar `PYTHONPATH` manual como workaround.
 - **Minor:** `data_processing_funcs.py:642` calcula áreas de superposición sin reproyectar a CRS proyectado primero — imprecisión metodológica real, no solo cosmética, en la asignación de celdas a distritos en zonas de borde.
 - **Minor:** el pipeline Python exige columna `id` en el archivo de facilities (a diferencia de R, donde es opcional); no está suficientemente aclarado en la documentación.
+- **Minor:** `pop_travel_times.py` emite un warning de puntos que no pudieron conectarse a la red vial, sin cuantificar cuántos — dificulta evaluar impacto real en cobertura.
+- **Minor:** mismo patrón de imprecisión de CRS (cálculo sin reproyectar) aparece también en `geospatial_utils.py`, al generar los mapas de visualización.
+- **Minor (UX):** la leyenda de color del dashboard Python muestra valores crudos de escala log10 (ej. "3.9") en vez de población real — puede confundir al usuario.
+- **Minor (UX):** el zoom inicial del mapa "National" en Python arranca muy alejado, mostrando más territorio de países vecinos que del propio país.
 
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible y una primera lectura del código.
-- Correr `pop_travel_times.py` (equivalente a 02_ttm.R) y ver el dashboard Python.
 - Checklist formal de código (R y Python) del Testing Recommendation Template — falta revisar el código fuente en sí (estilo, comentarios, documentación de funciones), más allá de que ya corre.
-- Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica.
+- Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica — comparar resultados numéricos entre ambos workflows para el mismo caso (Malawi).
 - Corridas con Argentina — evaluando rendimiento con volúmenes de datos pesados, probablemente con estrategia de menor a mayor (subnacional antes que país completo) dado el tamaño del territorio. Probablemente requiera boundaries a nivel ADM2, no ADM1 (usado hoy solo para validar funcionamiento).
 - Reunión con la NSO para acordar recomendación (paso 4b).
 - Completar y subir el Testing Recommendation Template.
@@ -132,4 +137,4 @@ documentación → requisitos → criterios verificables → implementación →
 - **19/08:** acceso restablecido vía equipo SIADS.
 - **20/08:** clonado del repo confirmado exitoso. Slide inicial armado.
 - **24/08:** recibidos Content Testing Quick Guide y Testing Recommendation Template (proceso oficial y entregable final). Confirmado deadline oficial (4/09). Slide de avance rediseñado y aprobado para el Working Group. Entorno técnico R instalado y verificado de punta a punta. Resuelto el bloqueante de datos de facilities (healthsites.io vía HDX) y de boundaries (geoBoundaries local, tras fallo de Overpass API). **Pipeline R corrido end-to-end con éxito**: preprocesamiento, matrices de tiempo de viaje, y **dashboard confirmado visualmente**. Workflow R 100% validado. Identificados 4 hallazgos menores para Proposed Amendments. Creado `tester.md` como borrador vivo del Testing Recommendation Template.
-- **25/08:** entorno Python resuelto vía Miniconda (pivote desde venv+pip al toparse con `cykhash` sin wheel en PyPI para Windows). Entorno `hc-mapping` creado con `environment.yml`. `data_preparation.py` corrido y validado end-to-end con datos reales de Malawi (exit code 0, 5 outputs confirmados). Identificados 4 hallazgos adicionales para Proposed Amendments (bug de `environment.yml`, `pyproject.toml` incompleto, imprecisión de CRS en cálculo de áreas, columna `id` requerida no aclarada). Aprendizaje operativo: copiar texto en la terminal Git Bash puede generar Ctrl+C accidental e interrumpir procesos — se resolvió redirigiendo output a archivo de log y evitando tocar la terminal activa.
+- **25/08:** entorno Python resuelto vía Miniconda (pivote desde venv+pip al toparse con `cykhash` sin wheel en PyPI para Windows). Entorno `hc-mapping` creado con `environment.yml`. **Workflow Python validado 100% end-to-end**: `data_preparation.py`, `pop_travel_times.py`, y dashboard (`quarto render` + `shiny run`), todos con datos reales de Malawi, mismo dataset usado en R para comparación consistente. Identificados 6 hallazgos adicionales para Proposed Amendments (bug de `environment.yml`, `pyproject.toml` incompleto, imprecisión de CRS en dos archivos distintos, columna `id` requerida no aclarada, warning de puntos sin conectar a red vial sin cuantificar, y leyenda de mapa en escala log10 sin explicar). Aprendizaje operativo: copiar texto en la terminal Git Bash puede generar Ctrl+C accidental e interrumpir procesos — se resolvió redirigiendo output a archivo de log y evitando tocar la terminal activa. **Ambos workflows (R y Python) quedan validados end-to-end en el mismo día de sesión.**
