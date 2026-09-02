@@ -5,17 +5,21 @@
 ![Round](https://img.shields.io/badge/round-first%20submission-lightgrey)
 ![Languages](https://img.shields.io/badge/code-R%20%7C%20Python-informational)
 
+## ⚠️ Hallazgo crítico de la sesión
+
+**R y Python no son funcionalmente equivalentes.** Para el mismo país (Malawi) y el mismo tipo de fuente de datos (healthsites.io), procesan un número de facilities radicalmente distinto:
+
+- **Total: 152 (R) vs 299 (Python) — ~49% de diferencia**
+- Hospital: 71 (R) vs 195 (Python) — la categoría más afectada
+- Esto se propaga a los resultados mostrados al usuario: 84.1% vs 76.1% de población fuera de rango; 18.4M vs 22.2M personas estimadas más allá del umbral, con el mismo filtro exacto (Nacional, clinic, 10km, Total population)
+
+**Causa raíz no determinada** — documentado con evidencia numérica exacta y reproducible; se deja para que el Developer investigue en la próxima ronda. Ver detalle completo en `tester.md`.
+
 ## Checkpoint actual
 
-**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. **Workflow R validado 100% end-to-end con Malawi, reconfirmado 01/09.** **Workflow Python validado 100% end-to-end con Malawi.** **Caso Argentina (pedido explícito del Developer) completo:**
-- Workflow nacional: **FAIL esperado y confirmado en ambos lenguajes** (límite de área del motor r5), con causa raíz precisa.
-- Workflow subnacional (San Juan): **PASS**, tras descubrir que la funcionalidad vive en una rama de git separada (`r-subnational-workflow`) no mergeada a `main`.
-
-Falta: checklist formal de código en detalle (estilo/comentarios), comparación de paridad numérica R vs Python, y reunión con la NSO.
+**Estamos en el paso 4a** (Tester testea el contenido) del proceso oficial. Workflows R y Python validados end-to-end con Malawi y Argentina (nacional + subnacional). **Hallazgo crítico de falta de paridad entre implementaciones detectado y documentado** (ver arriba). Falta: checklist formal de código en detalle, y reunión con la NSO.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
-
-*(Nota interna, no oficial: UK ofreció una extensión de plazo individual por el problema de acceso al repositorio, que se decidió no tomar formalmente, aunque queda disponible como respaldo si hiciera falta.)*
 
 | Paso oficial (Content Testing Quick Guide) | Estado |
 | --- | --- |
@@ -26,80 +30,61 @@ Falta: checklist formal de código en detalle (estilo/comentarios), comparación
 | 4b. Tester + NSO acuerdan recomendación | ⏳ No iniciado |
 | 4c. Tester completa Testing Recommendation Template | ⏳ No iniciado |
 | 5. Tester sube el Template | ⏳ Deadline oficial: 4/09/2026 |
-| 6. UK team flaggea al Developer | — Futuro |
-| 7. Moderation Panel (si rechazo) | — Futuro, condicional |
-| 8. Sign-off en Project Board | — Futuro |
 
 ## Qué tenemos
 
-- Los 6 documentos de referencia del Developer, más `docs/R/03a-subnational-workflow.md` de la rama `r-subnational-workflow`.
-- Acceso completo y confirmado al repositorio de código.
-- Entorno técnico R completo, instalado sin permisos de administrador. **Reconfirmado sano el 01/09.**
-- **Pipeline R validado end-to-end con Malawi**, dashboard confirmado visualmente (con hallazgo nuevo: mapa base no carga, "API KEY REQUIRED" de CARTO).
-- Entorno técnico Python completo vía Miniconda.
-- **Pipeline Python validado end-to-end con Malawi**, dashboard confirmado visualmente.
-- **Sesión 01/09 — caso Argentina completo:**
-  - **Workflow nacional (ambos lenguajes): FAIL esperado y confirmado.** Python falla en segundos con `IllegalArgumentException: Geographic extent of street layer (6347812 km2) exceeds limit of 975000 km2`. R, en la rama `main`, tarda del orden de horas en llegar al mismo tipo de error (`Geographic extent of street layer exceeds limit of "975,000" km^2`) — sin ningún chequeo temprano equivalente al de Python, y sin indicadores de progreso que permitan al usuario estimar cuánto va a tardar.
-  - **Workflow subnacional (San Juan): PASS**, tras un desvío importante — el primer intento en la rama `main` también falló (con el mismo error), porque el script `02_ttm.R` de `main` **no lee `network_source_path` ni `analysis_mode`**. Se descubrió que esta funcionalidad está implementada correctamente en la rama `r-subnational-workflow`, nunca mergeada a `main`. Tras hacer checkout de esa rama, el workflow subnacional corrió **exitosamente en menos de 10 segundos** de cómputo pesado (red construida en 4.18s, accesibilidad en 1.69s), usando un PBF recortado con `osmium-tool` (984 KB, vs 428 MB del país completo).
-  - **Hallazgo mayor de EPSG único** para países multi-faja (`analysis_crs` en Python) — resuelto con aproximación práctica (EPSG:32720) para continuar el testeo.
-  - Varios hallazgos adicionales de instalación y código — ver detalle en `tester.md`.
+- Documentación completa revisada, incluida `docs/R/03a-subnational-workflow.md` de la rama `r-subnational-workflow`.
+- Entornos técnicos R y Python completos y funcionales, instalados sin permisos de administrador.
+- **Pipelines R y Python validados end-to-end con Malawi**, ambos dashboards confirmados visualmente.
+- **Caso Argentina (país grande, pedido explícito del Developer) completo:**
+  - Workflow nacional: **FAIL esperado y confirmado en ambos lenguajes** (límite de área del motor r5, 975,000 km²). R tarda órdenes de magnitud más que Python en llegar al mismo resultado, sin chequeo temprano.
+  - Workflow subnacional (San Juan): **PASS**, tras descubrir que la funcionalidad vive en la rama `r-subnational-workflow`, no mergeada a `main`. Una vez en la rama correcta, corrió exitosamente en menos de 10 segundos.
+- **Comparación de paridad R vs Python con Malawi (mismo filtro exacto): hallazgo crítico de falta de equivalencia** — ver arriba y `tester.md` para el detalle completo.
+- Hallazgos adicionales de UX y código: botón roto en dashboard Python, asset faltante, filtros que se resetean al recargar, mapa base de R sin cargar, y una lista extensa de hallazgos menores de instalación y calidad de código — ver `tester.md`.
 
 ## Hallazgos para Proposed Amendments (Testing Recommendation Template)
 
-Ver detalle completo, con evidencia y clasificación Major/Minor, en `tester.md`. Los más relevantes:
+Ver detalle completo con evidencia y clasificación en `tester.md`. Los de mayor peso:
 
+- **CRÍTICO/MAYOR:** discrepancia de ~49% en facilities procesadas entre R y Python para el mismo país — afecta directamente la confiabilidad de los resultados de accesibilidad.
 - **Mayor:** `analysis_crs` no soporta países grandes multi-faja como Argentina.
-- **Mayor:** el workflow nacional de R no tiene chequeo temprano de extensión geográfica — tarda órdenes de magnitud más que Python en llegar al mismo error de límite de área.
-- **Mayor (gestión de repo, no de funcionalidad):** el workflow subnacional de R vive en una rama (`r-subnational-workflow`) nunca mergeada a `main` y desactualizada respecto a ella. Una vez en la rama correcta, la funcionalidad en sí **funciona bien y de forma eficiente**.
-- **Minor:** `environment.yml` con bug de sintaxis (reconfirmado).
-- **Minor:** `pyproject.toml` sin metadata válida, instala paquete como "UNKNOWN" (reconfirmado).
-- **Minor:** `importlib_metadata` no declarada, `health_data_source` hardcodeado, descarga OSM sin validar status code, fallback de `facility_type` faltante, `nbclient` faltante en instalación alternativa.
-- **Minor:** dashboard Python no maneja con gracia datos faltantes de un país (`FileNotFoundError` crudo).
-- **Minor-a-Mayor:** dashboard R no carga el mapa base ("API KEY REQUIRED" de CARTO).
-- **Minor:** el filtrado de boundaries a un área subnacional por nombre de texto es insuficiente (departamentos homónimos entre provincias); el método correcto (centroide dentro del polígono) no está documentado.
-- El resto de los hallazgos de la sesión previa (carpetas de salida no creadas automáticamente, columnas `X`/`Y` mayúscula, Overpass poco confiable, `ownership: NA`, CRS sin reproyectar en dos archivos, columna `id` requerida, warnings sin cuantificar, leyenda log10, zoom inicial del mapa) siguen vigentes — ver `tester.md`.
+- **Mayor:** el workflow nacional de R no tiene chequeo temprano de extensión geográfica.
+- **Mayor (gestión de repo):** el workflow subnacional de R vive en una rama nunca mergeada a `main`. Una vez ahí, funciona bien.
+- **Minor-a-Mayor:** botón de breakdown en dashboard Python no responde; mapa base de R no carga.
+- Lista extensa de hallazgos menores de instalación (`environment.yml`, `pyproject.toml`, dependencias faltantes) y calidad de código — ver `tester.md`.
 
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado.
 - Checklist formal de código (R y Python) — revisión de estilo, comentarios y documentación de funciones en detalle.
-- Confirmar que ambas implementaciones (R y Python) tienen funcionalidad idéntica — comparar resultados numéricos entre ambos workflows para el mismo caso (Malawi).
+- Investigación de causa raíz de la discrepancia de facilities R/Python — dejada conscientemente para el Developer en la próxima ronda.
 - Reunión con la NSO para acordar recomendación (paso 4b).
 - Completar y subir el Testing Recommendation Template.
-- Opcional: consultarle al Developer si existen otras ramas de git con funcionalidad relevante no mergeada a `main`, dado el precedente encontrado con `r-subnational-workflow`.
+- Opcional: consultarle al Developer si existen otras ramas de git con funcionalidad relevante no mergeada a `main`.
 
 ## Decisiones clave tomadas
 
-- Se prioriza el workflow en **R antes que Python**, siguiendo el orden sugerido por el Developer.
-- Malawi como caso de control antes que Argentina, para aislar problemas de instalación de problemas de datos.
-- Argentina elegido como caso de país grande para cumplir los pedidos explícitos de la Acceptance Criteria ("Main workflow" y "Subnational run").
-- San Juan elegido para el caso subnacional (en vez de Buenos Aires, el ejemplo de la guía) por tener facilities de ejemplo ya confirmadas y evitar depender de fuentes de boundaries adicionales.
-- Ante el hallazgo de que la funcionalidad subnacional de R vive en una rama separada, se usó `git stash` para preservar la configuración de Argentina armada sobre `main` antes de hacer checkout de `r-subnational-workflow`, resolviendo los conflictos de merge resultantes a favor de la configuración ya armada.
-- Ante el hallazgo del EPSG único para Argentina (país multi-faja), se usó una aproximación práctica (EPSG:32720, UTM 20S) para poder continuar el testeo, documentando explícitamente que no es una solución real.
+- Malawi como caso de control, Argentina para cumplir los pedidos explícitos de país grande (nacional y subnacional).
+- San Juan elegido para el caso subnacional por tener facilities de ejemplo ya confirmadas.
+- Ante el hallazgo de la discrepancia de facilities entre R y Python, se decidió documentar el síntoma con evidencia exacta y no perseguir la causa raíz en este ciclo — el diagnóstico de por qué dos pipelines que leen la misma fuente llegan a conteos distintos requiere contexto interno de desarrollo que excede el alcance razonable del testing en este momento del cronograma.
+- Ante el hallazgo del EPSG único para Argentina, se usó una aproximación práctica (EPSG:32720) para poder continuar el testeo.
 
 ## Diferencias R vs Python
 
 | Aspecto | R | Python |
 | --- | --- | --- |
-| Motor de ruteo | r5r (jar v7.4 documentado) | r5py (jar v7.5.1 confirmado en uso) |
+| Motor de ruteo | r5r (jar v7.4 documentado) | r5py (jar v7.5.1 confirmado) |
+| **Facilities procesadas (Malawi, mismo tipo de fuente)** | **152 total** | **299 total** |
 | Límites administrativos | OpenStreetMap o archivo local | geoBoundaries (automático) |
-| max_travel_time por defecto | 167 min | 120 min |
 | Formatos de facilities soportados | CSV, Excel (no GeoJSON) | GeoJSON |
-| CRS | Solo `crs` de salida (4326); sin problema de multi-faja porque no hay concepto de `analysis_crs` proyectado por país | Requiere `analysis_crs` proyectado por país — problemático en países multi-faja |
-| Manejo de mayúsculas en columnas de facilities | Insensible (`rename_with(tolower)`) | No confirmado — asume nombres exactos |
-| Chequeo temprano de límite de área geográfica | **No existe en `main`** — falla tarde y lento (horas). Confirmado como error de r5 subyacente, mismo límite que Python (975,000 km²) | Sí — falla en segundos con `IllegalArgumentException` |
-| Workflow subnacional | Existe y funciona bien, pero en rama separada (`r-subnational-workflow`) no mergeada a `main` | No implementado — la Python User Guide solo describe el approach en prosa (segmentación manual + buffer), sin herramienta dedicada |
-| Dashboard / mapas | Quarto + Shiny for R / Leaflet — mapa base con problema de API key | Quarto + Shiny for Python / Folium |
+| CRS | Solo `crs` de salida (4326) | Requiere `analysis_crs` proyectado por país — problemático en países multi-faja |
+| Chequeo temprano de límite de área | No existe en `main` — falla tarde y lento | Sí — falla en segundos |
+| Workflow subnacional | Existe y funciona bien, en rama separada no mergeada | No implementado — solo descrito en prosa |
+| Dashboard | Quarto + Shiny for R / Leaflet — mapa base roto | Quarto + Shiny for Python / Folium — botón de breakdown roto |
 
 ## Documentación fuente
 
-Los documentos originales provistos por el Developer se encuentran alojados en Drive:
-
 [https://drive.google.com/drive/u/1/folders/1Peo4XEoCPh-hz3CG3K_82CZYu04MXmx6](https://drive.google.com/drive/u/1/folders/1Peo4XEoCPh-hz3CG3K_82CZYu04MXmx6)
-
-## Entregables
-
-Carpeta `entregables/`: contiene los archivos finales para enviar.
 
 ## Borrador del testeo (tester.md)
 
@@ -113,7 +98,7 @@ Carpeta `entregables/`: contiene los archivos finales para enviar.
 
 [https://github.com/datasciencecampus/geospatial-healthcare-facilities](https://github.com/datasciencecampus/geospatial-healthcare-facilities)
 
-Ramas relevantes: `main` (workflow principal, R y Python), `r-subnational-workflow` (workflow subnacional R, no mergeada a `main`, desactualizada).
+Ramas relevantes: `main` (workflow principal), `r-subnational-workflow` (workflow subnacional R, no mergeada, desactualizada).
 
 ## Repositorio de trabajo (este)
 
@@ -130,12 +115,11 @@ documentación → requisitos → criterios verificables → implementación →
 - **13/08:** documentación inicial leída. Detectado bloqueo de acceso al repo.
 - **19/08:** acceso restablecido.
 - **20/08:** clonado del repo confirmado exitoso.
-- **24/08:** entorno técnico R instalado y verificado de punta a punta. **Pipeline R corrido end-to-end con éxito** con Malawi, dashboard confirmado visualmente.
-- **25/08:** entorno Python resuelto vía Miniconda. **Workflow Python validado 100% end-to-end** con Malawi.
-- **01/09:** Sesión enfocada en el caso Argentina completo (país grande, pedidos explícitos del Developer).
-  - Entorno Python reconstruido desde cero, reproduciendo bugs conocidos de `environment.yml` y `pyproject.toml` con evidencia completa.
-  - Hallazgo Mayor de EPSG único inadecuado para país multi-faja, resuelto con aproximación práctica (EPSG:32720).
-  - Workflow nacional: Python falla rápido con causa exacta (975,000 km²); R, en `main`, tarda órdenes de magnitud más en llegar al mismo tipo de error, sin chequeo temprano.
-  - Workflow subnacional: primer intento fallido por estar en la rama equivocada (`main` no implementa `network_source_path`); investigación del código fuente reveló la existencia de la rama `r-subnational-workflow` con la implementación correcta; tras `git stash` + checkout + resolución de conflictos, el workflow subnacional para San Juan corrió exitosamente en menos de 10 segundos.
-  - Entorno R reconfirmado sano; dashboard R re-verificado con Malawi (hallazgo nuevo: mapa base no carga).
-  - Pendiente: revisión formal de código fuente en ambos lenguajes, comparación de paridad numérica R vs Python.
+- **24/08:** entorno R instalado. Pipeline R corrido end-to-end con Malawi, dashboard confirmado.
+- **25/08:** entorno Python resuelto. Workflow Python validado end-to-end con Malawi.
+- **01/09:** Sesión extensa sobre el caso Argentina y comparación de paridad.
+  - Workflow nacional: FAIL confirmado en ambos lenguajes (límite de área r5), con R mucho más lento que Python en llegar al mismo resultado.
+  - Workflow subnacional: descubierta la rama `r-subnational-workflow` no mergeada a `main`; tras checkout, San Juan corrió exitosamente en menos de 10 segundos.
+  - **Comparación de paridad R vs Python con Malawi: hallazgo crítico de discrepancia de ~49% en facilities procesadas**, con impacto directo en los resultados de accesibilidad mostrados al usuario. Causa raíz no determinada, documentado para investigación del Developer en próxima ronda.
+  - Hallazgos adicionales de UX: botón roto en dashboard Python, asset faltante, filtros que se resetean al recargar, mapa base de R sin cargar.
+  - Pendiente: revisión formal de código fuente en ambos lenguajes.
