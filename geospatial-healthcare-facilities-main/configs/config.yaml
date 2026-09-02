@@ -1,0 +1,17 @@
+data_dir: data/
+
+outputs_dir: outputs/
+
+datasets_config: configs/datasets.yaml
+
+analysis_crs: 
+  Nepal: EPSG:24342 
+  Bangladesh: EPSG:9678
+  Malawi: EPSG:20936 
+  UK: EPSG:27700
+  Rwanda: EPSG:32736
+
+
+visualisation_crs: EPSG:4326 # WSG84 
+
+country: Nepal

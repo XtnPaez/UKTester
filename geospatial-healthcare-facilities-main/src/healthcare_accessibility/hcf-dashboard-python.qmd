@@ -1,0 +1,630 @@
+---
+title: "Healthcare facility mapping"
+logo: "www/whiteAAlogo.png"
+format: 
+  dashboard:
+    theme:
+      [default, www/custom.scss]
+    nav-buttons:
+      - icon: github
+        href: https://github.com/datasciencecampus/geospatial-healthcare-facilities
+        aria-label: GitHub
+editor_options: 
+  chunk_output_type: console
+server: shiny
+---
+
+```{python}
+#| context: setup
+#| message: false
+from pathlib import Path
+
+import folium
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+from branca.colormap import linear
+from shiny import reactive, render, req, ui
+
+
+import importlib
+import geopandas as gpd
+import matplotlib.pyplot as plt
+import pandas as pd
+from pathlib import Path
+import yaml
+import pyarrow
+import pycountry
+
+import healthcare_accessibility.geospatial_utils as geo_util
+import healthcare_accessibility.osm_utils as osm_util
+import healthcare_accessibility.data_processing_funcs as dp_funcs
+import healthcare_accessibility.utils as utils
+import healthcare_accessibility.postprocessing as postpro
+
+
+config_filepath = Path().cwd().joinpath("configs", "config.yaml")
+
+with open(config_filepath) as file:
+    config = yaml.safe_load(file)
+
+with open(config.get("datasets_config")) as file:
+    datasets = yaml.safe_load(file)
+
+
+facility_type_col_header = "facility_type"
+admin_area_col_header = "ADM2"
+travel_metric_header = "travel_distance"
+facility_name_header = "facility_name"
+grid_id_header = "grid_id"
+
+analysis_crs = config.get("analysis_crs").get(config.get("country"))
+visualisation_crs = config.get("visualisation_crs")
+
+country = config.get("country")
+
+travel_time_inputs_dir = Path(config.get("outputs_dir")).joinpath(country)
+
+bike_ttm_df = pyarrow.parquet.read_pandas(
+    Path(travel_time_inputs_dir).joinpath(
+        "bicycle_travel_times_to_All healthcare facilities.parquet"
+    )
+).to_pandas()
+bike_ttm_df["to_id"] = bike_ttm_df["to_id"].astype(str)
+
+
+walk_ttm_path = Path(travel_time_inputs_dir).joinpath(
+    "walk_travel_times_to_All healthcare facilities.parquet"
+)
+if walk_ttm_path.exists():
+    walk_ttm_df = pyarrow.parquet.read_pandas(
+        Path(travel_time_inputs_dir).joinpath(
+            "walk_travel_times_to_All healthcare facilities.parquet"
+        )
+    ).to_pandas()
+    walk_ttm_df["to_id"] = walk_ttm_df["to_id"].astype(str)
+
+
+car_ttm_path = Path(travel_time_inputs_dir).joinpath(
+    "car_travel_times_to_All healthcare facilities.parquet"
+)
+if car_ttm_path.exists():
+    car_ttm_df = pyarrow.parquet.read_pandas(
+        Path(travel_time_inputs_dir).joinpath(
+            "car_travel_times_to_All healthcare facilities.parquet"
+        )
+    ).to_pandas()
+    car_ttm_df["to_id"] = car_ttm_df["to_id"].astype(str)
+
+
+processed_data_dir = (
+    Path(config.get("data_dir")) / config.get("country") / "processed_data"
+)
+
+health_fac_gdf = gpd.read_file(
+    processed_data_dir / datasets.get("health_facility").get("processed_hcf")
+)
+
+health_fac_gdf = health_fac_gdf.to_crs(analysis_crs)
+
+# convert any polygons to points by taking the centroid (some facilities are mapped as polygons in OSM)
+health_fac_gdf["geometry"] = health_fac_gdf.geometry.centroid
+
+healthcare = health_fac_gdf[["id", facility_type_col_header, facility_name_header, "facility_ownership", "geometry"]]
+
+
+pop_gdf = gpd.read_file(
+    processed_data_dir / datasets.get("population").get("processed_master_grid")
+)
+
+pop_gdf = pop_gdf.rename(columns={"id_national": "id"})
+pop_gdf = pop_gdf.to_crs(analysis_crs)
+
+
+adm2_path = (
+    Path(config.get("data_dir"))
+    .joinpath(country.lower())
+    .joinpath("raw_data")
+    .joinpath("admin_boundary_geom")
+    .joinpath(
+        f"{pycountry.countries.get(name=country).alpha_3}_ADM2_geoboundaries.geojson"
+    )
+)
+
+district_gdf = dp_funcs.load_administrative_boundaries(adm2_path, "ADM2", message=False)
+district_gdf = district_gdf.to_crs(analysis_crs)
+
+
+distance_matrix_bike_df = postpro.convert_travel_time_to_distance(
+    bike_ttm_df, "bicycle"
+)
+
+distance_matrix_df = distance_matrix_bike_df.drop("travel_time", axis=1)
+
+ttm_gdf = distance_matrix_df.merge(pop_gdf, left_on="to_id", right_on="id", how="right")
+ttm_gdf = ttm_gdf.merge(healthcare.drop("geometry",axis=1), left_on="from_id", right_on="id", how="left")
+ttm_gdf = ttm_gdf.rename(columns={"to_id": grid_id_header, "from_id": "hcf_id"})
+
+
+demographic_dict = {
+    "population": "Total population",
+    "female": "Females",
+    "male": "Males",
+    "children": "Children (0-14)",
+    "working_age": "Working-age adults (15-64)",
+    "older_people": "Older people (65+)",
+    "reproductive_age": "Women of reproductive age (15-49)",
+}
+
+healthcare_admin = gpd.sjoin(  
+    healthcare[["id", "geometry"]],  
+    district_gdf[[admin_area_col_header, "geometry"]],  
+    how="left",  
+    predicate="intersects",  
+)[["id", admin_area_col_header]].drop_duplicates(subset="id")  
+
+```
+
+
+# {.sidebar}
+
+Explore the estimated populations that are within the chosen distance of a healthcare facility.
+
+```{python}
+
+ui.input_select(
+    "admin_area",
+    "Select an admin area",
+    choices=["National", *sorted(district_gdf[admin_area_col_header].dropna().unique().tolist())],
+    selected="National",
+)
+
+ui.input_selectize(
+    "facility_type_selection",
+    "Select health facility type(s)",
+    choices=sorted(healthcare[facility_type_col_header].dropna().unique().tolist()),
+    selected=["hospital"],
+    multiple=True,
+)
+
+ui.input_numeric(
+    "distance_band_km",
+    "Select distance threshold (km)",
+    value=10,
+    min=1,
+    max=20,
+    step=1,
+)
+
+ui.input_select(
+    "demographic",
+    "Select demographic group",
+    choices=demographic_dict,
+    selected=demographic_dict.get("population"),
+)
+
+ui.input_checkbox(
+    "show_outside",
+    "Show population outside selected distance",
+    value=True,
+)
+
+ui.input_action_button("show_facility_modal", "Show health facility breakdown")
+```
+
+```{python}
+
+@reactive.calc
+def selected_district() -> gpd.GeoDataFrame:
+    if input.admin_area() == "National":
+        return district_gdf
+    return gpd.GeoDataFrame(district_gdf.loc[district_gdf[admin_area_col_header] == input.admin_area()].copy())
+
+
+@reactive.calc
+def selected_facility_types() -> list[str]:
+    values = input.facility_type_selection()
+    if values is None:
+        return []
+    if isinstance(values, str):
+        return [values]
+    return list(values)
+
+
+@reactive.calc
+def filtered_healthcare() -> pd.DataFrame:
+    types = selected_facility_types()
+    df = healthcare.loc[healthcare[facility_type_col_header].isin(types)].copy()
+    df = df.merge(healthcare_admin, on="id", how="left")
+
+    if input.admin_area() != "National":
+        df = df.loc[df[admin_area_col_header] == input.admin_area()].copy()  
+
+
+    popup_exclude = {"id", "geometry"}
+    popup_cols = [c for c in df.columns if c not in popup_exclude]
+
+    def build_popup(row: pd.Series) -> str:
+        name = row.get(facility_name_header, "Facility")
+        details = [f"{col}: {row[col]}" for col in popup_cols if col != facility_name_header]
+        return f"<b>{name}</b><br>" + "<br>".join(details)
+
+    if not df.empty:
+        df["popup"] = df.apply(build_popup, axis=1)
+    else:
+        df["popup"] = []
+    return df
+
+
+@reactive.calc
+def ttm_filtered() -> pd.DataFrame:
+    types = selected_facility_types()
+
+    if input.admin_area() == "National":
+        mask = ttm_gdf[facility_type_col_header].isna() | ttm_gdf[facility_type_col_header].isin(types)
+        return ttm_gdf.loc[mask].copy()
+    else:
+        mask = (ttm_gdf[admin_area_col_header].isna() | (ttm_gdf[admin_area_col_header] == input.admin_area())) & (
+        ttm_gdf[facility_type_col_header].isna() | ttm_gdf[facility_type_col_header].isin(types)
+    )
+        return ttm_gdf.loc[mask].copy()
+
+
+@reactive.calc
+def point_population() -> pd.DataFrame:
+    """ Return grid cells that meet input conditions."""
+    demo_col = input.demographic()
+    req(demo_col in ttm_gdf.columns)
+
+    grouped = (
+        ttm_filtered()
+        .groupby([grid_id_header, "geometry", demo_col], dropna=False, as_index=False)[
+            travel_metric_header
+        ]
+        .min()
+    )
+    grouped.loc[np.isinf(grouped[travel_metric_header]), travel_metric_header] = np.nan
+
+    threshold = input.distance_band_km()
+    if input.show_outside():
+        mask = grouped[travel_metric_header].isna() | (grouped[travel_metric_header] > threshold)
+    else:
+        mask = grouped[travel_metric_header].notna() & (grouped[travel_metric_header] <= threshold)
+
+    return grouped.loc[mask].copy()
+
+
+@reactive.calc
+def n_health_facilities() -> pd.DataFrame:
+    df = filtered_healthcare()
+    if df.empty:
+        return pd.DataFrame(columns=[facility_type_col_header, "n"])
+    return healthcare.facility_type.value_counts()
+
+
+@reactive.calc
+def pop_summary() -> pd.DataFrame:
+    ttm = ttm_gdf
+    demo_col = input.demographic()
+    threshold = input.distance_band_km()
+    types = selected_facility_types()
+
+    if input.admin_area() == "National":
+        filtered = ttm.loc[
+            ttm[facility_type_col_header].isin(types) | ttm[facility_type_col_header].isna()
+        ].drop_duplicates()
+        relevant_pop_gdf = pop_gdf
+    else:
+        filtered = ttm.loc[
+            (ttm[admin_area_col_header] == input.admin_area())
+            & (ttm[facility_type_col_header].isin(types) | ttm[facility_type_col_header].isna())
+        ]
+        relevant_pop_gdf = pop_gdf.loc[
+            (ttm[admin_area_col_header] == input.admin_area())
+        ]
+
+    with_facility = filtered.loc[filtered[facility_type_col_header].notna(), [grid_id_header, demo_col, travel_metric_header]]
+    with_facility = (
+        with_facility.groupby(grid_id_header, as_index=False)
+        .agg({demo_col: "first", travel_metric_header:"min"})
+    )
+
+    no_facility = filtered.loc[
+        filtered[facility_type_col_header].isna() & ~filtered[grid_id_header].isin(with_facility[grid_id_header]),
+        [grid_id_header, demo_col, travel_metric_header],
+    ].drop_duplicates()
+
+    combined = pd.concat([no_facility, with_facility], ignore_index=True)
+    combined.loc[np.isinf(combined[travel_metric_header]), travel_metric_header] = np.nan
+    combined = combined.rename(columns={demo_col: "population_col"})
+
+    band = input.distance_band_km()
+    combined["distance"] = np.where(
+        combined[travel_metric_header].notna() & (combined[travel_metric_header] <= threshold),
+        f"Within {band}km",
+        f"Outside {band}km",
+    )
+
+    # when ttm_gdf is generated from a merge with distance df, any population cells
+    # in excess of the max travel time/distance are excluded. However these are relevant 
+    # again when calculating population totals. We reintroduce them again here: 
+    excluded_pop_cells_df = pd.merge(
+        combined, relevant_pop_gdf, left_on="grid_id", right_on="id", how="right"
+    )[
+        pd.merge(
+            combined, pop_gdf, left_on="grid_id", right_on="id", how="right"
+        ).distance.isna()
+    ]
+    excluded_pop_sum = excluded_pop_cells_df[demo_col].sum()
+    missing_data = {
+        "grid_id": ["XXX"],
+        "population_col": [excluded_pop_sum],
+        "travel_distance": [f"Outside {band}km"],
+        "distance": [f"Outside {band}km"],
+    }
+    df_new_rows = pd.DataFrame(missing_data)
+    combined = pd.concat([combined, df_new_rows])
+
+    out = combined.groupby("distance", as_index=False)["population_col"].sum(min_count=1)
+    total = out["population_col"].sum() 
+    if total and not np.isnan(total):
+        out["percent"] = np.round((out["population_col"] / total) * 100, 1)
+    else:
+        out["percent"] = 0.0
+    return out
+
+```
+
+# Home {orientation="columns"}
+
+## Map {width="75%"}
+
+```{python}
+
+@render.text
+def map_title() -> str:
+    if input.show_outside():
+        return f"Population outside {input.distance_band_km()}km of selected health facilities"
+    return f"Population within {input.distance_band_km()}km of selected health facilities"
+
+@render.ui
+def map_view():
+    district_gdf = selected_district()
+    district_gdf = district_gdf.to_crs(visualisation_crs)
+
+    req(not district_gdf.empty)
+
+    points = gpd.GeoDataFrame(point_population()).to_crs(visualisation_crs)
+    demo_col = input.demographic()
+
+    bounds = district_gdf.total_bounds
+    center_lat = (bounds[1] + bounds[3]) / 2
+    center_lon = (bounds[0] + bounds[2]) / 2
+
+    m = folium.Map(location=[center_lat, center_lon], tiles="OpenStreetMap", zoom_start=8)
+
+    folium.GeoJson(
+        district_gdf.__geo_interface__,
+        style_function=lambda _: {"color": "black", "weight": 2, "fillOpacity": 0.0},
+        name="Admin Area",
+    ).add_to(m)
+
+    if not points.empty and demo_col in points.columns:
+        pop_vals = points[demo_col].astype(float)
+        pop_vals = pop_vals[(~pop_vals.isna()) & (pop_vals > 0)]
+
+        if not pop_vals.empty:
+
+            log_vals = np.log10(pop_vals)
+            cmap = linear.viridis.scale(-1, float(log_vals.max()))
+            cmap.caption = f"Estimated population ({demo_col}, log10 scale)"
+            cmap.add_to(m)
+
+            if input.admin_area() == "National":
+                for _, row in points.iterrows():
+                    value = row.get(demo_col)
+                    if pd.isna(value) or value <= 0 or pd.isna(row.get("geometry")):
+                        continue
+                    color = cmap(float(np.log10(value)))
+                    folium.CircleMarker(
+                        location=[row.geometry.centroid.y, row.geometry.centroid.x],
+                        radius=2,
+                        color=color,
+                        fill=True,
+                        fill_color=color,
+                        fill_opacity=0.75,
+                        weight=0,
+                    ).add_to(m)
+            else:
+                points_vis = points[points[demo_col].notna() & (points[demo_col] > 0)].copy()
+                points_vis["log_val"] = np.log10(points_vis[demo_col].astype(float))
+
+                folium.GeoJson(
+                    points_vis.__geo_interface__,
+                    style_function=lambda feature: {
+                        "fillColor": cmap(feature["properties"]["log_val"]),
+                        "color": "none",
+                        "weight": 0,
+                        "fillOpacity": 0.75,
+                    },
+                    name="Population",
+                ).add_to(m)
+
+    facilities = gpd.GeoDataFrame(filtered_healthcare())
+    facilities = facilities.to_crs(visualisation_crs)
+    for _, row in facilities.iterrows():
+        if pd.isna(row.get("geometry")):
+            continue
+        popup = row.get("popup", "")
+        folium.Marker(
+            location=[row.geometry.y, row.geometry.x],
+            tooltip=popup,
+            icon=folium.Icon(color="blue", icon="hospital", prefix="fa"),
+        ).add_to(m)
+
+    m.fit_bounds([[bounds[1], bounds[0]], [bounds[3], bounds[2]]])
+    return ui.HTML(m._repr_html_())
+
+
+
+```
+
+## Value boxes {width="25%"}
+
+### Number of health facilities
+
+```{python}
+def n_health_facilities_total() -> str:
+    df = filtered_healthcare()
+    return df.shape[0]
+
+# ui.div(
+#     ui.value_box(
+#         title=ui.TagList(
+#             "Number of health facilities",
+#             ui.HTML('<i class="bi bi-info-circle"></i>'),
+#             ui.span(
+#                 "(click for breakdown)",
+#                 style="font-size: 0.9em; color: #888; margin-left: 6px;"
+#             )
+#         ),
+#         value=ui.output_text("n_health_facilities_total"),
+#         showcase_layout="top right",
+#         theme=ui.value_box_theme(bg="#e6f2fd", fg="#0B538E"),
+#     ),
+#     onclick="Shiny.setInputValue('show_facility_modal', Math.random())",
+#     style="cursor: pointer;"
+# )
+
+
+# @reactive.effect
+# @reactive.event(input.show_facility_modal)
+# def _show_facility_modal() -> None:
+#     ui.modal_show(
+#         ui.modal(
+#             ui.output_table("tbl_health_facilities"),
+#             title="Health Facility Breakdown",
+#             easy_close=True,
+#             size="m",
+#         )
+#     )
+
+
+# @render.data_frame
+# def tbl_health_facilities() -> pd.DataFrame:
+#     hcf_type_counts_df = n_health_facilities()
+#     if hcf_type_counts_df.empty:
+#         return pd.DataFrame({"Message": ["None selected"]})
+#     else:
+#         hcf_type_counts_df.index = hcf_type_counts_df.index.rename("Facility Type")
+#     return render.DataGrid(hcf_type_counts_df)
+
+
+
+
+# @render.text
+# def n_health_facilities_summary() -> str:
+#     n_tbl = n_health_facilities()
+#     if n_tbl.empty:
+#         return "None selected"
+#     n_show = 2
+#     shown = " | ".join(
+#         f"{row[facility_type_col_header]}: {row.n}" for row in n_tbl.head(n_show).itertuples(index=False)
+#     )
+#     if len(n_tbl) > n_show:
+#         return f"{shown} | +{len(n_tbl) - n_show} more"
+#     return shown
+
+```
+
+### Population proportion
+
+```{python}
+
+@reactive.calc
+def title_percent_within() -> str:
+    if input.show_outside():
+        return f"% of estimated population outside {input.distance_band_km()}km"
+    return f"% of estimated population within {input.distance_band_km()}km"
+
+
+@reactive.calc
+def percent_within() -> str:
+    band = input.distance_band_km()
+    label = f"Outside {band}km" if input.show_outside() else f"Within {band}km"
+    summary = pop_summary()
+    row = summary.loc[summary["distance"] == label, "percent"]
+    value = float(row.iloc[0]) if not row.empty else 0.0
+    return f"{value:.1f}%"
+
+@render.ui
+def percentage_info_box():
+    return ui.value_box(
+        title=title_percent_within(),
+        value=percent_within(),
+        showcase_layout="top right",
+        theme=ui.value_box_theme(bg="#e6f2fd", fg="#0B538E"),
+    )
+```
+
+### Estimated population count
+
+```{python}
+@reactive.calc
+def title_n_outside() -> str:
+    if input.show_outside():
+        return f"Estimated population beyond {input.distance_band_km()}km"
+    return f"Estimated population within {input.distance_band_km()}km"
+
+
+@reactive.calc
+def n_outside() -> str:
+    band = input.distance_band_km()
+    label = f"Outside {band}km" if input.show_outside() else f"Within {band}km"
+    summary = pop_summary()
+    row = summary.loc[summary["distance"] == label, "population_col"]
+    value = float(row.iloc[0]) if not row.empty else 0.0
+    return f"{int(round(value)):,}"
+
+@render.ui
+def n_pop_outside_box():
+    return ui.value_box(
+        title=title_n_outside(),
+        value=n_outside(),
+        showcase_layout="top right",
+        theme=ui.value_box_theme(bg="#e6f2fd", fg="#0B538E"),
+    )
+```
+
+# About
+
+
+**User interface**
+
+This [Shiny](https://shiny.posit.co/) application enables the user to identify estimated populations that reside beyond a user defined distance of a health facility. The dropdown menus allow users to select individual subnational areas or the whole of the country. Healthcare facilities can be selected by type, for example: hospital, clinic, dispensary, private and unclassified. It also possible to choose estimated populations by subgroup:
+
+- Females
+- Males
+- Children (0-14)
+- Working-age adults (15-64)
+- Older people (65+)
+- Women of reproductive age (15-49)
+
+Finally users can toggle between estimated populations that live *within* and *outside* the chosen distance of a healthcare facility.
+
+The map will automatically zoom to the area of interest and update summary statistics in the right panel.
+
+**Datasets**
+
+The following datasets were used in the application:
+
+|Name |Source |URL |Type |Licence |
+|:-----|:-----|:-----|:-----|:-----|
+|Administrative boundaries |[geoBoundaries](https://www.geoboundaries.org/countryDownloads.html) |[Link](https://www.geoboundaries.org/countryDownloads.html)  |`.GeoJSON`  |[Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0) |
+|Healthcare facilities |[healthsites.io](https://healthsites.io/) | [Link](https://data.humdata.org/dataset) |`.GeoJSON`  |[Open Database License](https://opendatacommons.org/licenses/odbl/) |
+|Population estimates |[WorldPop](https://www.worldpop.org/) | [Link](https://www.worldpop.org/datacatalog/) |`.tif` |[Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0) |
+|Road network |[OpenStreetMap (OSM)](ttps://wiki.openstreetmap.org/wiki/Overpass_API) | [Link](https://overpass-api.de/) |`.pbf` |[ODbL](https://opendatacommons.org/licenses/odbl/) |
+
+**Method**
+
+A distance matrix was derived from a travel time matrix calculated using the [`r5py`](https://r5py.readthedocs.io/stable/) Python package which interfaces with the [R<sup>5</sup>](https://github.com/conveyal/r5) routing engine. The shortest distances along the road network between origin (healthcare facilities) and destination (gridded population estimates) pairs were identified and visualised in the application. Full details of the methodology can be found in the accompanying GitHub repo.

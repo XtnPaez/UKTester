@@ -1,0 +1,4 @@
+project: 
+  execute-dir: project
+  post-render:
+    - src/healthcare_accessibility/fix_quarto_static_assets.py

@@ -1,0 +1,26 @@
+health_facility:
+  processed: processed_hcf_data/
+  processed_hcf: healthcare_facility_data.gpkg
+  master_health_list: /Master Health Facilities/Malawi_master_health_list.csv # has no geometries but contains urban and rural
+  baobab: baobab_health_facilities.csv
+  figshare: figshare_ssa.xlsx
+  figshare_hml: figshare_hml.csv # cleaned figshare data combined with the masters list
+  eliz_data: elizabeth_aids_foundation.xlsx # previous name QA-ANNEX-1-List-of-Sites-and-Bandwidth-Estimates-MAL-122019-EMR.xlsx
+  osm_points: hotosm_mwi_health_facilities_points_shp.dbf # NOT SURE NEEDED
+  osm_polys: hotosm_mwi_health_facilities_polygons_shp.dbf # NOT SURE NEEDED
+  zipatala: MHFR_Facilities.xlsx # master Health Facility Registry from Malawi government
+  hml: Malawi-Master-Health-Facility-List.xlsx
+  hotosm_mwi_points: Malawi Health Facilities (OpenStreetMap Export)/hotosm_mwi_health_facilities_points_geojson.geojson
+  hotosm_mwi_polygons: Malawi Health Facilities (OpenStreetMap Export)/hotosm_mwi_health_facilities_polygons_geojson.geojson
+  2023_malawai_hcf: Malawi healthcare facilities (HDX) files/2023_malawai_health_facilities.geojson 
+  MPSA: MSPA/mspa_2013_14.geojson # geocoded data on healthcare facilities from DHS
+  WHO: iAHO-World Health Organisation/iAHO_MFL_Data_Export.csv # master Facility List database from WHO, no geometry, seems to be the same as zipatals
+  polygon_to_point: polygon_to_centroids_malawi_health_facilities.geojson # previously hotosm_mwi_health_facilities_polygons_geojson.geojson
+  cleaned_hcf: cleaned_malawi_health_facilities.gpkg # cleaned, merged & duplicates removed for 9 datasets - data_cleaning_and_merging.py
+  whole_data: Combined_data.csv # figshare, baobab and eliz aids only
+  duplicates: duplicates.csv
+  duplicated_hcf: duplicated_complete_malawi_health_facilities.gpkg # made from data_cleaning_and_merging.py 
+  complete_hcf: complete_gdf.gpkg  # cleaned, merged & duplicates removed
+
+population:
+  processed_master_grid: master_population_grid_data.gpkg

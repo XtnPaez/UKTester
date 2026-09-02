@@ -1,0 +1,37 @@
+country: "Malawi"
+crs: 4326 # Default = 4326
+
+# Inputs
+## Boundaries
+### Local filepath to the boundary file for the country
+districts_filepath:
+district_name_column:  # Enter the column name for the desired area names - Defaults to the first column
+### If no boundary files added boundaries are pulled from OpenStreetMap
+admin_level: 4  # If no boundary files add the administration level here - Defaults to 4
+admin_level_name: "district"  # Used for dashboard display
+
+## Healthcare facilities
+facility_list_filepath:
+facility_list_url:
+
+## Population grid
+population_filepath: 
+worldpop:
+  year: 2025
+  release: "R2025A"  # WorldPop release identifier - check https://data.worldpop.org for latest
+  version: "v1"
+
+
+# Processing
+## Boundary points
+boundary_assign_method: "zonal"
+
+## Travel-time analysis
+travel_time:
+  mode: "BICYCLE"  # Mode of transport for travel time analysis. Options: "WALK", "BICYCLE"
+  max_travel_time_mins: 167  # Defaults to 167 minutes
+
+## r5r settings
+r5r:
+  n_threads: 4  # Number of parallel threads used by r5r for travel-time computation. Defaults to 2
+  java_memory: 2  # Java memory allocation for r5r. Defaults to 2GB

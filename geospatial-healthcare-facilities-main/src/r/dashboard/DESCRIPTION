@@ -1,0 +1,47 @@
+Package: healthcareFacilityMapping
+Title: Healthcare Facility Mapping Dashboard Pipeline
+Version: 0.0.1
+Authors@R: person(given = "Data Science Campus", family = "Team", role = c("aut", "cre"), email = "datasciencecampus@ons.gov.uk")
+Description: Utilities, run scripts, and dashboard assets for preparing
+    healthcare facility data, population rasters, administrative boundaries,
+    and travel-time outputs for the healthcare facility mapping workflow.
+License: MIT
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    arrow,
+    countrycode,
+    curl,
+    dplyr,
+    here,
+    httr,
+    jsonlite,
+    osmdata (>= 0.3.0),
+    purrr,
+    quarto,
+    r5r (>= 2.3.0),
+    rJavaEnv,
+    readr,
+    readxl,
+    rlang,
+    sf,
+    stringr,
+    terra,
+    yaml
+Suggests:
+    bslib,
+    bsicons,
+    classInt,
+    devtools,
+    data.table,
+    leaflet,
+    memoise,
+    shiny,
+    shinyWidgets,
+    testthat,
+    tibble,
+    tidyverse,
+    viridisLite,
+    withr
+Config/testthat/edition: 3

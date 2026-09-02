@@ -1,0 +1,346 @@
+---
+title: "Healthcare facility mapping"
+logo: "www/whiteAAlogo.png"
+format: 
+  dashboard:
+    theme:
+      [default, www/custom.scss]
+    nav-buttons:
+      - icon: github
+        href: https://github.com/datasciencecampus/geospatial-healthcare-facilities
+        aria-label: GitHub
+editor_options: 
+  chunk_output_type: console
+server: shiny
+---
+
+```{r}
+#| label: setup
+#| message: false
+suppressPackageStartupMessages({
+  library(tidyverse) ; library(sf) ; library(terra) ; library(leaflet) ; library(bslib) ;
+  library(bsicons) ; library(shiny) ; library(here) ; library(arrow) ; library(data.table) ;
+  library(shinyWidgets) ; library(viridisLite) ; library(classInt) ; library(memoise) ;
+  library(readr) ; library(rlang) ; library(scales)
+})
+
+devtools::load_all(here::here("src", "r", "dashboard"), quiet = TRUE)
+
+# Read config
+config <- yaml::read_yaml(here::here("src", "r", "dashboard", "config", "config.yaml"))
+all_district_value <- "__ALL_AREAS__"
+
+# Load static data once at startup
+district            <- load_districts(config$country)
+district_choices    <- get_district_choices(district, all_district_value)
+healthcare          <- load_healthcare(config$country)
+facility_choices    <- sort(unique(healthcare$type))
+default_facility_type <- if ("hospital" %in% facility_choices) "hospital" else facility_choices[[1]]
+has_healthcare_district <- "district" %in% names(healthcare)
+ttm                 <- load_ttm(config$country)
+pop_rast            <- load_population_raster(config$country, config$worldpop$year)
+```
+
+# {.sidebar}
+
+<br>
+Explore the estimated populations that are within the chosen distance of a healthcare facility.
+
+```{r}
+selectInput(
+  inputId  = config$admin_level_name,
+  label    = "Select a district",
+  choices  = district_choices,
+  selected = district_choices[[2]]
+)
+
+selectizeInput(
+  inputId  = "facility_type",
+  label    = "Select health facility type(s)",
+  choices  = facility_choices,
+  selected = default_facility_type,
+  multiple = TRUE,
+  options  = list(
+    onDelete = I("function(values) { return this.items.length > values.length; }")
+  )
+)
+
+helpText("At least one facility type must be selected.")
+
+selectInput(
+  inputId  = "distance_band_km",
+  label    = "Select distance band (km)",
+  choices  = c(5, 8, 10),
+  selected = 8
+)
+
+selectInput(
+  inputId  = "demographic",
+  label    = "Select demographic group",
+  choices  = c(
+    "Total population",
+    "Females",
+    "Males",
+    "Children (0-14)",
+    "Working-age adults (15-64)",
+    "Older people (65+)",
+    "Women of reproductive age (15-49)"
+  ),
+  selected = "Total population"
+)
+
+checkboxInput(
+  inputId = "show_outside",
+  label   = "Show population outside selected distance",
+  value   = TRUE
+)
+```
+
+```{r}
+#| context: server
+
+# ---------------------------------------------------------------------------
+# Shared reactives
+# ---------------------------------------------------------------------------
+
+last_valid_facility_types <- reactiveVal(default_facility_type)
+
+observeEvent(input$facility_type, {
+  if (length(input$facility_type) == 0) {
+    updateSelectInput(session, "facility_type", selected = last_valid_facility_types())
+    showNotification("Select at least one facility type.", type = "warning", duration = 3)
+  } else {
+    last_valid_facility_types(input$facility_type)
+  }
+}, ignoreInit = TRUE)
+
+selected_district <- reactive({
+  filter_district_sf(district, input$district, all_district_value)
+})
+
+travel_time_threshold <- reactive({
+  travel_time_threshold_from_km(
+    input$distance_band_km,
+    mode = config$travel_time$mode
+  )
+})
+
+healthcare_sf <- reactive({
+  req(length(input$facility_type) > 0)
+  filter_healthcare_df(
+    healthcare, input$district, input$facility_type,
+    has_healthcare_district, all_district_value
+  ) |>
+    build_healthcare_sf()
+})
+
+ttm_raster <- reactive({
+  req(length(input$facility_type) > 0)
+  ttm_filtered <- filter_ttm_data(
+    ttm, input$district, input$facility_type, all_district_value
+  )
+  compute_ttm_raster(
+    ttm_filtered,
+    demographic            = input$demographic,
+    travel_time_threshold  = travel_time_threshold(),
+    show_outside           = isTRUE(input$show_outside),
+    pop_rast               = pop_rast
+  )
+})
+
+pop_summary <- reactive({
+  req(length(input$facility_type) > 0)
+  compute_pop_summary(
+    ttm,
+    selected_district      = input$district,
+    facility_types         = input$facility_type,
+    all_district_value     = all_district_value,
+    demo_col               = input$demographic,
+    travel_time_threshold  = travel_time_threshold(),
+    distance_band_km       = input$distance_band_km
+  )
+})
+
+n_facilities <- reactive({
+  req(length(input$facility_type) > 0)
+  compute_facility_counts(
+    healthcare, input$district, input$facility_type,
+    has_healthcare_district, all_district_value
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Map
+# ---------------------------------------------------------------------------
+
+output$map <- renderLeaflet({
+  leaflet() |>
+    addProviderTiles("CartoDB.Positron")
+})
+
+observe({
+  palette_info <- build_log_palette(ttm_raster())
+  req(!is.null(palette_info))
+
+  update_leaflet_map(
+    map_proxy        = leafletProxy("map"),
+    district_sf      = selected_district(),
+    palette_info     = palette_info,
+    healthcare_sf    = healthcare_sf(),
+    distance_band_km = input$distance_band_km
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Value box: number of facilities
+# ---------------------------------------------------------------------------
+
+observeEvent(input$show_facility_modal, {
+  showModal(modalDialog(
+    title     = "Health Facility Breakdown",
+    tableOutput("tbl_health_facilities"),
+    easyClose = TRUE,
+    size      = "m"
+  ))
+})
+
+output$n_health_facilities_total <- renderText({
+  sum(n_facilities()$n)
+})
+
+output$tbl_health_facilities <- renderTable({
+  n_tbl <- n_facilities()
+  if (nrow(n_tbl) == 0) return(data.frame(Message = "None selected"))
+  dplyr::rename(n_tbl, "Facility type" = type, "Count" = n)
+}, striped = TRUE, bordered = TRUE, hover = TRUE)
+
+output$n_health_facilities <- renderUI({
+  result <- build_facility_summary_text(n_facilities())
+  span(title = result$full_txt, result$summary_txt)
+})
+
+# ---------------------------------------------------------------------------
+# Value box: % within / outside
+# ---------------------------------------------------------------------------
+
+output$title_percent_within <- renderText({
+  if (isTRUE(input$show_outside)) {
+    paste0("% of estimated population outside ", input$distance_band_km, "km of the chosen health facilities")
+  } else {
+    paste0("% of estimated population within ", input$distance_band_km, "km of the chosen health facilities")
+  }
+})
+
+output$percent_within <- renderText({
+  label     <- if (isTRUE(input$show_outside)) {
+    paste0("Outside ", input$distance_band_km, "km")
+  } else {
+    paste0("Within ", input$distance_band_km, "km")
+  }
+  percent_val <- dplyr::pull(dplyr::filter(pop_summary(), distance == label), percent)
+  paste0(percent_val, "%")
+})
+
+# ---------------------------------------------------------------------------
+# Value box: estimated population count
+# ---------------------------------------------------------------------------
+
+output$title_n_outside <- renderText({
+  if (isTRUE(input$show_outside)) {
+    paste0("Estimated population beyond ", input$distance_band_km, "km of the chosen health facilities")
+  } else {
+    paste0("Estimated population within ", input$distance_band_km, "km of the chosen health facilities")
+  }
+})
+
+output$n_outside <- renderText({
+  label   <- if (isTRUE(input$show_outside)) {
+    paste0("Outside ", input$distance_band_km, "km")
+  } else {
+    paste0("Within ", input$distance_band_km, "km")
+  }
+  pop_val <- dplyr::pull(dplyr::filter(pop_summary(), distance == label), population)
+  scales::label_comma(accuracy = 1)(pop_val)
+})
+```
+
+# Home {orientation="columns"}
+
+## Map {width="75%"}
+
+```{r}
+#| title: Population within the chosen distance of a health facility
+leafletOutput("map")
+```
+
+## Value boxes {width="25%"}
+
+```{r}
+#| label: number-hospitals
+value_box(
+  title = tagList(
+    "Number of health facilities",
+    bs_icon("info-circle"),
+    span(
+      style = "font-size: 0.9em; color: #48553F; margin-left: 6px;",
+      "(click for breakdown)"
+    )
+  ),
+  value            = textOutput("n_health_facilities_total"),
+  showcase_layout  = "top right",
+  theme            = value_box_theme(bg = "#F4F6F5", fg = "#1E2A16"),
+  onclick          = "Shiny.setInputValue('show_facility_modal', Math.random())"
+)
+```
+
+```{r}
+#| label: percent-pop-within
+value_box(
+  title           = textOutput("title_percent_within"),
+  value           = textOutput("percent_within"),
+  showcase_layout = "top right",
+  theme           = value_box_theme(bg = "#F4F6F5", fg = "#1E2A16")
+)
+```
+
+```{r}
+#| label: n-pop-outside
+value_box(
+  title           = textOutput("title_n_outside"),
+  value           = textOutput("n_outside"),
+  showcase_layout = "top right",
+  theme           = value_box_theme(bg = "#F4F6F5", fg = "#1E2A16")
+)
+```
+
+# About
+
+**User interface**
+
+This [R Shiny](https://shiny.posit.co/) application enables the user to identify estimated populations that reside beyond 5, 8, and 10km distance of a health facility. The dropdown menus allow users to select individual subnational areas or the whole of the country. Healthcare facilities can be selected by type, for example: hospital, clinic, dispensary, private and unclassified. It also possible to choose estimated populations by subgroup:
+
+- Females
+- Males
+- Children (0-14)
+- Working-age adults (15-64)
+- Older people (65+)
+- Women of reproductive age (15-49)
+
+Finally users can toggle between estimated populations that live *within* and *outside* the chosen distance of a healthcare facility.
+
+The map will automatically zoom to the area of interest and update summary statistics in the right panel.
+
+**Datasets**
+
+The following datasets were used in the application:
+
+|Name |Source |URL |Type |Licence |
+|:-----|:-----|:-----|:-----|:-----|
+|Administrative boundaries |[OpenStreetMap (OSM)](ttps://wiki.openstreetmap.org/wiki/Overpass_API) |[Link](https://overpass-api.de/) |`.GeoJSON`  |[ODbL](https://opendatacommons.org/licenses/odbl/) |
+|Healthcare facilities |[healthsites.io](https://healthsites.io/) | [Link](https://data.humdata.org/dataset) |`.csv` |[Open Database License](https://opendatacommons.org/licenses/odbl/) |
+|Population estimates |[WorldPop](https://www.worldpop.org/) | [Link](https://www.worldpop.org/datacatalog/) |`.tif` |[Creative Commons Attribution 4.0 International License](http://creativecommons.org/licenses/by/4.0) |
+|Road network |[OpenStreetMap (OSM)](ttps://wiki.openstreetmap.org/wiki/Overpass_API) | [Link](https://overpass-api.de/) |`.pbf` |[ODbL](https://opendatacommons.org/licenses/odbl/) |
+
+**Method**
+
+A distance matrix was derived from a travel time matrix calculated using the [`r5r`](https://ipeagit.github.io/r5r/) R package which interfaces with [R<sup>5</sup>](https://github.com/conveyal/r5) routing engine. The shortest distances between origin (healthcare facilities) and destination (gridded population estimates) pairs were identified and visualised in the application. Full details of the methodology can be found in the accompanying GitHub repo.

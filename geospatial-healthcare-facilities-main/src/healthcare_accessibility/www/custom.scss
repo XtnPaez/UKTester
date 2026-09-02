@@ -1,0 +1,149 @@
+/*-- scss:defaults --*/
+
+/*
+   Custom Quarto dashboard theme
+   Palette source: healthcare facility mapping brand guidance
+*/
+
+/* Brand: Standard palette */
+$brand-dark-green: #324027;
+$brand-earthy-green: #48553F;
+$brand-orange: #F59342;
+$brand-near-black: #1E2A16;
+
+/* Brand: Background tints */
+$tint-green-grey: #F4F6F5;
+$tint-earthy: #F8F5F1;
+$tint-white: #FFFFFF;
+
+/* Data visualisation: Categorical (ordered) */
+$viz-cat-1: #1E2A16; /* Near black */
+$viz-cat-2: #D17E38; /* Burnt orange */
+$viz-cat-3: #444443; /* Dark stone */
+$viz-cat-4: #3EA27F; /* Sea green */
+$viz-cat-5: #752111; /* Dark red */
+$viz-cat-6: #618DD3; /* Sky blue */
+
+/* Data visualisation: Continuous (ordered) */
+$viz-cont-1: #1E2A16; /* Near black */
+$viz-cont-2: #6C7466; /* Mid green */
+$viz-cont-3: #CDD0CB; /* Light green: limited contrast on white */
+
+/* Data visualisation: Focus charts */
+$viz-focus-1: #1E2A16; /* Near black */
+$viz-focus-2: #949494; /* Grey */
+
+/* Quarto / Bootstrap theme mappings */
+$primary: $brand-dark-green;
+$secondary: $brand-earthy-green;
+$success: $brand-earthy-green;
+$warning: $brand-orange;
+$dark: $brand-near-black;
+$light: $tint-green-grey;
+
+$body-bg: $tint-white;
+$body-color: $brand-near-black;
+$link-color: $brand-dark-green;
+$link-hover-color: $brand-earthy-green;
+
+$navbar-bg: $brand-near-black;
+$navbar-fg: $tint-white;
+$navbar-hl: $brand-orange;
+
+/* Typography */
+$font-family-sans-serif: "Open Sans", sans-serif;
+$headings-font-family: "Open Sans", sans-serif;
+
+/* SCSS lists for chart palette reuse */
+$palette-categorical: (
+   $viz-cat-1,
+   $viz-cat-2,
+   $viz-cat-3,
+   $viz-cat-4,
+   $viz-cat-5,
+   $viz-cat-6
+);
+
+$palette-continuous: (
+   $viz-cont-1,
+   $viz-cont-2,
+   $viz-cont-3
+);
+
+$palette-focus: (
+   $viz-focus-1,
+   $viz-focus-2
+);
+
+/*-- scss:rules --*/
+
+@import url("https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap");
+
+:root {
+   --brand-dark-green: #324027;
+   --brand-earthy-green: #48553F;
+   --brand-orange: #F59342;
+   --brand-near-black: #1E2A16;
+
+   --tint-green-grey: #F4F6F5;
+   --tint-earthy: #F8F5F1;
+   --tint-white: #FFFFFF;
+
+   --viz-cat-1: #1E2A16;
+   --viz-cat-2: #D17E38;
+   --viz-cat-3: #444443;
+   --viz-cat-4: #3EA27F;
+   --viz-cat-5: #752111;
+   --viz-cat-6: #618DD3;
+
+   --viz-cont-1: #1E2A16;
+   --viz-cont-2: #6C7466;
+   --viz-cont-3: #CDD0CB;
+
+   --viz-focus-1: #1E2A16;
+   --viz-focus-2: #949494;
+}
+
+/* Optional helper classes for quick use */
+.bg-tint-green-grey { background-color: $tint-green-grey; }
+.bg-tint-earthy { background-color: $tint-earthy; }
+.text-brand-dark-green { color: $brand-dark-green; }
+.text-brand-earthy-green { color: $brand-earthy-green; }
+.text-brand-orange { color: $brand-orange; }
+
+/* Dashboard chrome */
+.quarto-dashboard .navbar {
+   border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.quarto-dashboard .sidebar {
+   background-color: $tint-green-grey;
+   border-right: 1px solid rgba(30, 42, 22, 0.12);
+}
+
+.quarto-dashboard .card,
+.quarto-dashboard .value-box {
+   border: 1px solid rgba(30, 42, 22, 0.12);
+   box-shadow: none;
+}
+
+.selectize-input, 
+.selectize-dropdown {
+  font-family: $form-select-font-family !important;
+  font-size: $form-select-font-size !important;
+  font-weight: $form-select-font-weight !important;
+  line-height: $form-select-line-height !important;
+}
+
+.selectize-input input, 
+.selectize-input .item {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  line-height: inherit !important;
+}
+
+.selectize-dropdown .option {
+  font-family: inherit !important;
+  font-size: inherit !important;
+}

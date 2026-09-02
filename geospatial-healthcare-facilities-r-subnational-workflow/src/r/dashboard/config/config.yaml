@@ -1,0 +1,48 @@
+analysis_mode: "country" # Options: "country" or "subnational"
+
+country: "Malawi"
+crs: 4326 # Default = 4326
+
+# Inputs
+## Boundaries
+### Local filepath to the boundary file (ADM1 for country-level, ADM2+ for subnational)
+districts_filepath: # For country-level: country-wide boundaries. For subnational: only lower-level units within the selected subnational_area
+district_name_column: # Column with area labels (defaults to first column if blank)
+### If no boundary files provided, boundaries are pulled from OpenStreetMap
+admin_level: 3  # OSM admin level (only used if districts_filepath is blank)
+admin_level_name: "district"  # Display label for area units
+
+## Subnational analysis
+### For larger countries, you can run the analysis for a subnational area (e.g., a province or region)
+### instead of the entire country. If set, you must provide a pre-filtered districts_filepath containing only
+### lower-level units within this area.
+subnational_area: # Leave blank for country-level. Set to a subnational area name (e.g., "Buenos Aires", "Eastern Region")
+network_source_path: # Path to a regional OSM PBF file. If set, uses this instead of downloading full country. Recommended for large countries
+
+## Healthcare facilities
+### If no facility list url or filepath provided, facilities will be pulled from Healthsite.io
+### Providing a filepath with the downloaded health facility list is preferred
+facility_list_filepath:
+facility_list_url:
+
+## Population grid
+population_filepath: 
+worldpop:
+  year: 2025
+  release: "R2025A"  # WorldPop release identifier - check https://data.worldpop.org for latest
+  version: "v1"
+
+
+# Processing
+## Boundary points
+boundary_assign_method: "zonal"
+
+## Travel-time analysis
+travel_time:
+  mode: "BICYCLE"  # Mode of transport for travel time analysis. Options: "WALK", "BICYCLE"
+  max_travel_time_mins: 167  # Defaults to 167 minutes
+
+## r5r settings
+r5r:
+  n_threads: 4  # Number of parallel threads used by r5r for travel-time computation. Defaults to 2
+  java_memory: 2  # Java memory allocation for r5r. Defaults to 2GB

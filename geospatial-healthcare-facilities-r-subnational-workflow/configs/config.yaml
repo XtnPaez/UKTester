@@ -1,0 +1,8 @@
+data_dir: data/
+
+outputs_dir: outputs/
+
+datasets_config: configs/datasets.yaml
+
+analysis_crs: "EPSG:20936" 
+visualisation_crs: "EPSG:4326"
