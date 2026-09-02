@@ -6,6 +6,8 @@
 ![Languages](https://img.shields.io/badge/code-R%20%7C%20Python-informational)
 
 > **Nota de reconciliación (02/09/2026):** este README fue reconstruido revisando toda la sesión de testeo de punta a punta, para no perder notas de versiones anteriores. Ver `tester.md` para el detalle completo con evidencia; este archivo es el resumen ejecutivo.
+>
+> **Actualización 02/09/2026 (tarde):** revisión de código fuente en Python completada. Encontrado un bug real de precedencia de operadores en `clean_gdf_boundaries()`, y una pista de código concreta (aunque no confirmada) para la causa raíz del hallazgo crítico de paridad R/Python.
 
 ## ⚠️ Hallazgo crítico de la sesión
 
@@ -23,7 +25,7 @@
 - Workflow nacional: **FAIL esperado y confirmado en ambos lenguajes** (mismo límite de área del motor r5 subyacente, 975.000 km²), con R tardando órdenes de magnitud más que Python en llegar al mismo resultado.
 - Workflow subnacional (San Juan, elección del Tester — el Developer no especifica provincia): **PASS**, tras descubrir que la funcionalidad de R vive en una rama de git separada (`r-subnational-workflow`) no mergeada a `main`.
 
-**Revisión de código fuente en R completada** (11 archivos). Python en curso. Falta: checklist formal de código Python, y reunión con la NSO.
+**Revisión de código fuente completada en R (11 archivos) y en Python (7 archivos principales).** Falta: reunión con la NSO.
 
 **Próximo hito real:** completar pasos 4a–4c y subir el Testing Recommendation Template — **deadline oficial: 4 de septiembre de 2026.**
 
@@ -60,6 +62,7 @@
   - **Hallazgo mayor de EPSG único** para países multi-faja (`analysis_crs` en Python) — resuelto con aproximación práctica (EPSG:32720) para continuar el testeo.
 - **Sesión 01/09 (noche) — comparación de paridad R vs Python con Malawi: hallazgo crítico** de discrepancia de ~49% en facilities procesadas — ver arriba y `tester.md` para el detalle completo, incluyendo cómo se obtuvo el dato (directamente por código, no por UI, ya que el botón de desglose del dashboard Python resultó estar roto).
 - **Sesión 02/09 — revisión de código fuente en R completada** (11 archivos, `src/r/dashboard/R/`): calidad general buena; causa raíz confirmada del bug de mapa base; patrón sistemático de docstrings desactualizados; hallazgo positivo de R sobre manejo de descargas OSM; función embrionaria de auto-CRS que podría orientar la solución al hallazgo de EPSG único.
+- **Sesión 02/09 (tarde) — revisión de código fuente en Python completada** (`data_processing_funcs.py`, `geospatial_utils.py`, `postprocessing.py`, `pop_travel_times.py`, `utils.py`, `accessability_metrics.py`, `fix_quarto_static_assets.py`): encontrado un **bug real de precedencia de operadores** en `clean_gdf_boundaries()` (funciona por casualidad con geoBoundaries, roto para otros formatos que dice soportar); una **hipótesis concreta con evidencia de código** para la causa raíz del hallazgo crítico de paridad (Python no filtra facilities sin coordenadas, a diferencia de R — podría deberse a que CSV vs GeoJSON de HDX no son snapshots equivalentes); una inconsistencia interna en Python sobre validación de descargas HTTP; y confirmación de que el patrón de leyenda log10 confusa se repite también en los mapas HTML estáticos, no solo en el dashboard.
 
 ## Hallazgos para Proposed Amendments (Testing Recommendation Template)
 
@@ -71,6 +74,8 @@ Ver el listado completo y numerado, con evidencia y clasificación Major/Minor, 
 - **Mayor (gestión de repo, no de funcionalidad):** el workflow subnacional de R vive en una rama nunca mergeada a `main`. Una vez ahí, funciona bien y de forma eficiente.
 - **Minor-a-Mayor:** botón de breakdown en dashboard Python no responde; mapa base de R no carga (causa confirmada: falta API key de CARTO).
 - **Minor (patrón):** docstrings de R desactualizados respecto a valores default reales del código (2 casos + 1 copy-paste).
+- **Minor-a-Mayor:** bug real de precedencia de operadores en `clean_gdf_boundaries()` (Python) — funciona por casualidad con geoBoundaries, roto para otros formatos que dice soportar.
+- **Pista de causa raíz (no confirmada):** Python no filtra facilities sin coordenadas (a diferencia de R); podría deberse a que los formatos CSV (R) y GeoJSON (Python) de HDX no son snapshots equivalentes del mismo dataset.
 - **Nota/recomendación positiva:** Python podría adoptar el enfoque de R para resolver URLs de descarga OSM (índice Geofabrik en vivo vs diccionario hardcodeado).
 - **Nota:** `find_crs()` en R podría orientar la solución al problema de EPSG único.
 - Lista extensa de hallazgos menores de instalación (`environment.yml`, `pyproject.toml`, dependencias faltantes), UX (leyenda log10, zoom inicial, filtros que se resetean, logo faltante) y calidad de código (hardcoded values, imports muertos, imprecisión de CRS sin reproyectar en dos archivos Python distintos) — ver `tester.md`.
@@ -78,8 +83,7 @@ Ver el listado completo y numerado, con evidencia y clasificación Major/Minor, 
 ## Qué falta
 
 - TdR de la Unidad — no fue encontrado; se trabaja asumiendo la idea original en base a la documentación disponible.
-- **Revisión de código fuente en Python** (`data_processing_funcs.py`, `geospatial_utils.py`, `postprocessing.py`, `pop_travel_times.py`, `utils.py`) — en curso.
-- Investigación de causa raíz de la discrepancia de facilities R/Python — dejada conscientemente para el Developer en la próxima ronda.
+- Investigación de causa raíz de la discrepancia de facilities R/Python — dejada conscientemente para el Developer en la próxima ronda (la revisión de código Python aportó una hipótesis concreta, ver arriba, pero no la confirmó).
 - Unit tests de Python — confirmar estado real (la Acceptance Criteria ya admite que no existen).
 - Otros modos de transporte (WALK, CAR) — solo se probó BICYCLE (default) en ambos lenguajes.
 - Fuente alternativa de facilities (ej. registro oficial de Malawi vía función dedicada en R) — solo se usó healthsites.io en todos los casos.
@@ -177,4 +181,4 @@ documentación → requisitos → criterios verificables → implementación →
   - Workflow subnacional: primer intento fallido por estar en la rama equivocada (`main` no implementa `network_source_path`); investigación del código fuente reveló la rama `r-subnational-workflow` con la implementación correcta; tras `git stash` + checkout + resolución de conflictos, San Juan corrió exitosamente en menos de 10 segundos.
   - **Comparación de paridad R vs Python con Malawi: hallazgo crítico de discrepancia de ~49% en facilities procesadas**, obtenido directamente por código tras descubrir que el botón de desglose del dashboard Python no respondía. Causa raíz no determinada, documentado para investigación del Developer.
   - Preparación de punteo para reunión con líderes locales del equipo Argentina.
-- **02/09:** Confirmada atribución correcta de San Juan (decisión del Tester, no pedido específico del Developer). **Revisión de código fuente en R completada** (11 archivos, `src/r/dashboard/R/`): causa raíz del bug de mapa base confirmada (falta de API key de CARTO), patrón de docstrings desactualizados identificado (3 casos), hallazgo positivo sobre manejo de descargas OSM en R vs Python, función `find_crs()` identificada como posible pista de solución al hallazgo de CRS. Pregunta abierta sobre carpeta `experimental/` en Python. Reconciliación completa de `tester.md` y `README.md` para asegurar que ninguna nota de sesiones anteriores se perdiera al ir resumiendo. Revisión de código Python en curso.
+- **02/09:** Confirmada atribución correcta de San Juan (decisión del Tester, no pedido específico del Developer). **Revisión de código fuente en R completada** (11 archivos, `src/r/dashboard/R/`): causa raíz del bug de mapa base confirmada (falta de API key de CARTO), patrón de docstrings desactualizados identificado (3 casos), hallazgo positivo sobre manejo de descargas OSM en R vs Python, función `find_crs()` identificada como posible pista de solución al hallazgo de CRS. Reconciliación completa de `tester.md` y `README.md` para asegurar que ninguna nota de sesiones anteriores se perdiera al ir resumiendo. **Revisión de código fuente en Python completada** (tarde, 7 archivos): bug real de precedencia de operadores en `clean_gdf_boundaries()`; hipótesis concreta con evidencia de código para la causa raíz de la discrepancia R/Python (Python no filtra facilities sin coordenadas); inconsistencia interna en validación de descargas HTTP; confirmación de que la leyenda log10 confusa se repite en mapas estáticos, no solo en el dashboard. Pregunta abierta sobre carpeta `experimental/` sigue sin resolver. Revisión de código fuente completada en ambos lenguajes.

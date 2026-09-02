@@ -11,7 +11,7 @@
 > perdiera al ir resumiendo. A partir de acá, las actualizaciones deben
 > **agregar**, no reemplazar/condensar, las tablas existentes.
 >
-> Última actualización: 02/09/2026
+> Última actualización: 02/09/2026 (revisión de código Python agregada)
 
 ---
 
@@ -113,8 +113,19 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 
 **Pendiente:** confirmar si existe un archivo `DESCRIPTION` en `src/r/dashboard/` (un nivel arriba de la carpeta `R/` que sí se revisó) — la R User Guide lo menciona como fuente para `devtools::install_deps()`; no se confirmó su existencia en esta sesión porque solo se subió la subcarpeta `R/` para revisión, no la carpeta padre completa.
 
-- Revisión de código fuente en Python: **pendiente**, a continuación.
-- Investigación de causa raíz de la discrepancia de facilities: dejada conscientemente para el Developer.
+### Sesión 02/09 (continuación) — revisión de código fuente en Python (`data_processing_funcs.py`, `geospatial_utils.py`, `postprocessing.py`, `pop_travel_times.py`, `utils.py`, `accessability_metrics.py`, `fix_quarto_static_assets.py`)
+
+- **Hallazgo de bug real:** `clean_gdf_boundaries()` (en `geospatial_utils.py`) tiene 6 condiciones `if/elif` con la forma `"NAME_1" and "ID_1" in gdf` — un error de precedencia de operadores en Python: un string no vacío como `"NAME_1"` siempre es `True`, así que la condición nunca verifica realmente si esa columna existe, colapsando al último chequeo (`"ID_1" in gdf`). Se repite en las 6 ramas de la función. Funciona "por casualidad" para nuestro caso real (geoBoundaries), pero está roto para los demás formatos que dice soportar (DIVA GIS, GADM), con una inconsistencia interna adicional en la rama ADM2-GADM (verifica `GID_2` pero renombra `NAME_2`, no `NAME_1`).
+- **Pista de código para el hallazgo crítico de paridad (Amendment #1):** `process_healthsites_hcf_data()` (la función real usada en el pipeline Python) **no filtra ninguna facility por coordenadas faltantes** — solo renombra columnas y descarta duplicados por `id`. R sí filtra explícitamente (149 filas removidas, mensaje de warning). Hipótesis con evidencia de código: el CSV de HDX (usado por R) puede incluir filas con celdas de coordenadas vacías que luego se descartan; el GeoJSON (usado por Python) probablemente solo exporta features con geometría ya válida — los dos formatos de descarga podrían no ser snapshots directamente equivalentes del mismo dataset de origen. No confirmado, pero es la pista más concreta encontrada hasta ahora para la investigación que le corresponde al Developer.
+- **Inconsistencia interna en Python** (no solo "R vs Python"): `get_data_from_web()` (usada para WorldPop y geoBoundaries) sí valida `response.raise_for_status()`; `acquire_latest_osm_data()` (usada para OSM/Geofabrik, ya documentada en Amendment #21) no lo hace — dos patrones de manejo de descargas conviviendo en el mismo código.
+- Confirmada la ubicación exacta del hallazgo de CRS ya documentado (Amendment #16): `generate_folium_travel_map()`, líneas 1580-1581, calcula el centroide **después** de reproyectar a `visualisation_crs` (geográfico). El mismo archivo también genera los mapas HTML estáticos de travel-time con leyenda en escala log10 sin des-transformar — el mismo patrón de UX confuso del Amendment #17 se repite acá, no es exclusivo del dashboard interactivo.
+- Código muerto/confuso (no funcional, solo claridad): en `generate_folium_travel_map()`, un `.sort_values(ascending=True)` sobre una columna cuyo resultado se descarta al reasignarse (pandas realinea por índice) — no tiene efecto real, solo confunde a quien lea el código.
+- Confirmado sin discrepancia: `max_bicycle_traffic_stress=4` hardcodeado en `evaluate_travel_times_to_facilities()`, consistente con el `max_lts = 4L` de R (Amendment ya documentado como comportamiento esperado en ambos lenguajes).
+- `fix_quarto_static_assets.py`: script de utilidad no documentado en ninguna guía, que parchea manualmente assets estáticos generados por Quarto en el `app.py` del dashboard — sugiere que el propio Developer conoce fricciones en el proceso de build del dashboard (relacionado posiblemente con el Amendment #23 de `nbclient` faltante).
+- Carpeta `experimental/` (10 archivos Python): sigue sin investigarse en detalle — pregunta abierta para el Developer.
+
+- Revisión de código fuente en Python: **completada** (archivos principales).
+- Investigación de causa raíz de la discrepancia de facilities: dejada conscientemente para el Developer, aunque la revisión de código Python aportó una hipótesis concreta (ver nota bajo el Amendment crítico #1 en Proposed Amendments).
 - Unit tests de Python: pendiente confirmar estado (la Acceptance Criteria ya admite que no existen; falta verificación independiente).
 - Otros modos de transporte (WALK, CAR): pendiente, solo se probó BICYCLE (default) en ambos lenguajes.
 - Fuente alternativa de facilities (ej. registro oficial de Malawi vía `get_healthcare_facilities_malawi` en R): pendiente, solo se usó healthsites.io en todos los casos.
@@ -165,6 +176,17 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 
 **Nota / posible pista de solución [R, revisión de código]:** `add_district_to_points.R` incluye una función `find_crs()` que auto-selecciona una proyección UTM según el centroide del país/área — un enfoque embrionario al mismo problema del Amendment #2 (EPSG único en países multi-faja). Actualmente solo se usa para el método de asignación `raster`, no para el cálculo de travel-time en sí, pero podría ser un punto de partida útil para que el Developer resuelva el problema de forma más general.
 
+| # | Amendment description | Major / minor |
+| --- | --- | --- |
+| 37 | **[Python, revisión de código]** `clean_gdf_boundaries()` tiene un bug de precedencia de operadores en Python: 6 condiciones de la forma `"NAME_1" and "ID_1" in gdf` nunca verifican realmente la primera columna (un string no vacío siempre es `True`), colapsando al último chequeo. Funciona por casualidad para el formato geoBoundaries (nuestro caso real), pero está roto para los demás formatos que la función dice soportar (DIVA GIS, GADM), con una inconsistencia interna adicional en la rama ADM2-GADM. | Minor-a-Mayor |
+| 38 | **[Python, revisión de código]** `get_data_from_web()` (usada para WorldPop y geoBoundaries) sí valida `response.raise_for_status()`; `acquire_latest_osm_data()` (usada para OSM/Geofabrik, Amendment #21) no lo hace — inconsistencia interna dentro del propio código Python, no solo una diferencia con R. | Minor |
+| 39 | **[Python, revisión de código]** Código muerto/confuso en `generate_folium_travel_map()`: un `.sort_values(ascending=True)` sobre una columna de población cuyo resultado se descarta al reasignarse (pandas realinea por índice) — sin efecto funcional real, pero confuso de leer. | Minor, cosmético |
+| 40 | **[Python, revisión de código]** El patrón de leyenda log10 sin des-transformar (Amendment #17, visto en el dashboard) también aparece en los mapas HTML estáticos generados por `generate_folium_travel_map()` (`legend_name="Population estimates (log10)"`) — no es exclusivo del dashboard interactivo, es un patrón repetido en el código de visualización. | Minor (UX), refuerza #17 |
+
+**Nota / hipótesis con evidencia de código para el hallazgo crítico #1 [Python, revisión de código]:** `process_healthsites_hcf_data()` no filtra ninguna facility por coordenadas faltantes (solo renombra columnas y descarta duplicados por `id`), a diferencia de R que sí filtra explícitamente (149 filas removidas). Hipótesis no confirmada: el CSV de HDX (usado por R) puede incluir filas con coordenadas vacías; el GeoJSON (usado por Python) probablemente solo exporta features con geometría ya válida — los dos formatos de descarga podrían no ser snapshots directamente equivalentes del mismo dataset de origen. Es la pista más concreta encontrada hasta ahora para que el Developer investigue la causa raíz del hallazgo #1.
+
+**Nota [Python, revisión de código]:** `fix_quarto_static_assets.py` es un script de utilidad no documentado en ninguna guía que parchea manualmente assets estáticos generados por Quarto en el `app.py` del dashboard — sugiere que el Developer ya conocía fricciones en el proceso de build del dashboard (posiblemente relacionado con el Amendment #23 de `nbclient` faltante).
+
 ---
 
 ## Testing criteria
@@ -186,8 +208,8 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 
 | Criteria | R | Python | Action required / queries |
 | --- | --- | --- | --- |
-| Good coding practices (naming, logic, hardcoded values) | **Mayormente bueno** — nombres claros, manejo de errores robusto (reintentos, validación MD5). Ver nota de `find_crs()` como buena práctica embrionaria | **Partial** — hardcoded values no cumplido (Amendment #20) | Revisión Python en detalle pendiente completar |
-| Code documentation (roxygen2/docstrings) | **Partial** — presente y detallado en general, pero con patrón confirmado de valores default desactualizados y un caso de copy-paste (Amendments #32-35) | **Partial** — import muerto sin comentario (Amendment #19) | |
+| Good coding practices (naming, logic, hardcoded values) | **Mayormente bueno** — nombres claros, manejo de errores robusto (reintentos, validación MD5). Ver nota de `find_crs()` como buena práctica embrionaria | **Partial** — hardcoded values no cumplido (Amendment #20); bug de precedencia de operadores en `clean_gdf_boundaries()` (Amendment #37); inconsistencia interna en validación de descargas (Amendment #38) | Revisión completada en ambos lenguajes |
+| Code documentation (roxygen2/docstrings) | **Partial** — presente y detallado en general, pero con patrón confirmado de valores default desactualizados y un caso de copy-paste (Amendments #32-35) | **Partial** — import muerto sin comentario (Amendment #19); docstrings en general presentes y razonablemente completos en los archivos revisados | |
 | Data management | ✅ Sin datos sensibles | ✅ Sin datos sensibles | |
 | **You, the Tester, have tested the code from start to finish using one or more realistic end-to-end tests** | ✅ **PASS** técnico (Malawi y San Juan corren exitosamente, con evidencia de tiempos y outputs) — ver hallazgo de paridad para matices de exactitud de resultados. ❌ **FAIL (esperado)** — Argentina nacional, con causa raíz precisa | ✅ **PASS** técnico (Malawi) — ídem matiz de paridad. ❌ **FAIL (esperado)** — Argentina nacional, causa raíz precisa | |
 | Tested using alternative input data | ✅ Argentina (nacional + subnacional) probado además de Malawi | ✅ Argentina probado además de Malawi | Falta probar con fuente de datos distinta a healthsites.io en ambos lenguajes (ej. registro oficial Malawi MHFR en R) |
