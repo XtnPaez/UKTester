@@ -8,6 +8,8 @@
 > **Nota de reconciliación (02/09/2026):** este README fue reconstruido revisando toda la sesión de testeo de punta a punta, para no perder notas de versiones anteriores. Ver `tester.md` para el detalle completo con evidencia; este archivo es el resumen ejecutivo.
 >
 > **Actualización 02/09/2026 (tarde):** revisión de código fuente en Python completada. Encontrado un bug real de precedencia de operadores en `clean_gdf_boundaries()`, y una pista de código concreta (aunque no confirmada) para la causa raíz del hallazgo crítico de paridad R/Python.
+>
+> **Actualización 02/09/2026 (feedback INDEC):** sumados 2 hallazgos Major sobre falta de documentación de entorno productivo y requisitos de sistema a nivel institucional.
 
 ## ⚠️ Hallazgo crítico de la sesión
 
@@ -76,6 +78,8 @@ Ver el listado completo y numerado, con evidencia y clasificación Major/Minor, 
 - **Minor (patrón):** docstrings de R desactualizados respecto a valores default reales del código (2 casos + 1 copy-paste).
 - **Minor-a-Mayor:** bug real de precedencia de operadores en `clean_gdf_boundaries()` (Python) — funciona por casualidad con geoBoundaries, roto para otros formatos que dice soportar.
 - **Pista de causa raíz (no confirmada):** Python no filtra facilities sin coordenadas (a diferencia de R); podría deberse a que los formatos CSV (R) y GeoJSON (Python) de HDX no son snapshots equivalentes del mismo dataset.
+- **Mayor (feedback INDEC):** ninguna guía documenta requisitos de entorno productivo (servidor, Docker, interoperabilidad institucional) — todo asume uso individual en notebook personal.
+- **Mayor (feedback INDEC):** falta especificar requisitos de sistema a nivel institucional, más allá de los ya documentados para uso local.
 - **Nota/recomendación positiva:** Python podría adoptar el enfoque de R para resolver URLs de descarga OSM (índice Geofabrik en vivo vs diccionario hardcodeado).
 - **Nota:** `find_crs()` en R podría orientar la solución al problema de EPSG único.
 - Lista extensa de hallazgos menores de instalación (`environment.yml`, `pyproject.toml`, dependencias faltantes), UX (leyenda log10, zoom inicial, filtros que se resetean, logo faltante) y calidad de código (hardcoded values, imports muertos, imprecisión de CRS sin reproyectar en dos archivos Python distintos) — ver `tester.md`.

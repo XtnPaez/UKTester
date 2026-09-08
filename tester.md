@@ -11,7 +11,7 @@
 > perdiera al ir resumiendo. A partir de acá, las actualizaciones deben
 > **agregar**, no reemplazar/condensar, las tablas existentes.
 >
-> Última actualización: 02/09/2026 (revisión de código Python agregada)
+> Última actualización: 02/09/2026 (agregados hallazgos de entorno productivo y requisitos de sistema, sugeridos por el equipo local INDEC)
 
 ---
 
@@ -185,6 +185,11 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 
 **Nota / hipótesis con evidencia de código para el hallazgo crítico #1 [Python, revisión de código]:** `process_healthsites_hcf_data()` no filtra ninguna facility por coordenadas faltantes (solo renombra columnas y descarta duplicados por `id`), a diferencia de R que sí filtra explícitamente (149 filas removidas). Hipótesis no confirmada: el CSV de HDX (usado por R) puede incluir filas con coordenadas vacías; el GeoJSON (usado por Python) probablemente solo exporta features con geometría ya válida — los dos formatos de descarga podrían no ser snapshots directamente equivalentes del mismo dataset de origen. Es la pista más concreta encontrada hasta ahora para que el Developer investigue la causa raíz del hallazgo #1.
 
+| # | Amendment description | Major / minor |
+| --- | --- | --- |
+| 41 | **Ninguna de las guías (R, Python, Methodology) documenta requisitos de entorno productivo**: no se especifica arquitectura de despliegue institucional (servidor propio, contenedores/Docker, orquestación), versiones mínimas de infraestructura, ni cómo actualizar o escalar el sistema de forma sostenible más allá de que una persona clone el repositorio en su notebook personal y lo corra localmente. Esto es relevante para interoperabilidad institucional — un NSO que quiera poner esta herramienta en producción no tiene ninguna guía de cómo hacerlo más allá del uso individual documentado. Feedback explícito del equipo local (INDEC) tras revisar los hallazgos preliminares. | Major |
+| 42 | **La documentación no especifica requisitos de sistema a nivel institucional** (más allá del punto ya cubierto en el Amendment #26 sobre memoria/hardware para correr el pipeline localmente): no hay indicación de qué necesitaría un servidor institucional para correr esto de forma sostenida para múltiples usuarios o países en simultáneo, ni de compatibilidad de versiones de sistema operativo/dependencias a nivel de despliegue. Feedback explícito del equipo local (INDEC). | Major |
+
 **Nota [Python, revisión de código]:** `fix_quarto_static_assets.py` es un script de utilidad no documentado en ninguna guía que parchea manualmente assets estáticos generados por Quarto en el `app.py` del dashboard — sugiere que el Developer ya conocía fricciones en el proceso de build del dashboard (posiblemente relacionado con el Amendment #23 de `nbclient` faltante).
 
 ---
@@ -198,7 +203,7 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 | Relevance | *(pendiente)* | |
 | Accuracy | **No** | Hallazgo de paridad R/Python (Amendment #1) es un problema central de accuracy — los resultados no son consistentes entre implementaciones para el mismo input |
 | Technical accuracy | **No** | Ídem — no se puede confiar en que ambas implementaciones den resultados técnicamente correctos y equivalentes |
-| Prerequisite skills and knowledge | **No** | No se especifican requisitos de memoria/hardware (Amendment #26); tampoco se advierte la necesidad de cambiar de rama de git para el workflow subnacional (Amendment #4) |
+| Prerequisite skills and knowledge | **No** | No se especifican requisitos de memoria/hardware (Amendment #26), ni de entorno productivo/interoperabilidad institucional (Amendments #41, #42); tampoco se advierte la necesidad de cambiar de rama de git para el workflow subnacional (Amendment #4) |
 
 ### Structure and Organisation / Coherence / Accessibility
 
