@@ -10,6 +10,8 @@
 > **Actualización 02/09/2026 (tarde):** revisión de código fuente en Python completada. Encontrado un bug real de precedencia de operadores en `clean_gdf_boundaries()`, y una pista de código concreta (aunque no confirmada) para la causa raíz del hallazgo crítico de paridad R/Python.
 >
 > **Actualización 02/09/2026 (feedback INDEC):** sumados 2 hallazgos Major sobre falta de documentación de entorno productivo y requisitos de sistema a nivel institucional.
+>
+> **Actualización 02/09/2026 (revisión de Structure/Coherence/Accessibility):** completadas las secciones que quedaban pendientes en el checklist — se encontró evidencia real que contradice el "Yes" del Developer en el criterio de Style Guide de la Acceptance Criteria (numeración de secciones duplicada/salteada, idéntica en ambas guías; acrónimo "PBF" nunca expandido).
 
 ## ⚠️ Hallazgo crítico de la sesión
 
@@ -80,6 +82,8 @@ Ver el listado completo y numerado, con evidencia y clasificación Major/Minor, 
 - **Pista de causa raíz (no confirmada):** Python no filtra facilities sin coordenadas (a diferencia de R); podría deberse a que los formatos CSV (R) y GeoJSON (Python) de HDX no son snapshots equivalentes del mismo dataset.
 - **Mayor (feedback INDEC):** ninguna guía documenta requisitos de entorno productivo (servidor, Docker, interoperabilidad institucional) — todo asume uso individual en notebook personal.
 - **Mayor (feedback INDEC):** falta especificar requisitos de sistema a nivel institucional, más allá de los ya documentados para uso local.
+- **Minor:** numeración de secciones duplicada/salteada, idéntica en ambas guías (R y Python) — contradice el "Yes" declarado por el Developer en Style Guide.
+- **Minor:** acrónimo "PBF" nunca expandido en ninguna de las dos guías, pese a que el Style Guide lo exige explícitamente.
 - **Nota/recomendación positiva:** Python podría adoptar el enfoque de R para resolver URLs de descarga OSM (índice Geofabrik en vivo vs diccionario hardcodeado).
 - **Nota:** `find_crs()` en R podría orientar la solución al problema de EPSG único.
 - Lista extensa de hallazgos menores de instalación (`environment.yml`, `pyproject.toml`, dependencias faltantes), UX (leyenda log10, zoom inicial, filtros que se resetean, logo faltante) y calidad de código (hardcoded values, imports muertos, imprecisión de CRS sin reproyectar en dos archivos Python distintos) — ver `tester.md`.
@@ -96,6 +100,7 @@ Ver el listado completo y numerado, con evidencia y clasificación Major/Minor, 
 - Preguntarle al Developer: si existen otras ramas de git con funcionalidad relevante no mergeada a `main` (como pasó con `r-subnational-workflow`); qué es la carpeta `src/healthcare_accessibility/experimental/` (10 archivos Python sin documentar en ninguna guía).
 - Confirmar si existe el archivo `DESCRIPTION` en `src/r/dashboard/` (mencionado por la R User Guide, no confirmado en la revisión de código porque solo se subió la subcarpeta `R/`).
 - **No requiere trabajo adicional:** compatibilidad multi-dispositivo — el Developer ya declaró explícitamente que recomienda uso en desktop; se puede cerrar como NOT TESTED/aceptado por criterio del Developer.
+- **Completado en esta sesión (ya no es pendiente):** revisión de Structure and Organisation, Coherence y Accessibility de la documentación — ver Amendments #43-46.
 
 ## Decisiones clave tomadas
 

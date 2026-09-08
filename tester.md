@@ -11,7 +11,7 @@
 > perdiera al ir resumiendo. A partir de acá, las actualizaciones deben
 > **agregar**, no reemplazar/condensar, las tablas existentes.
 >
-> Última actualización: 02/09/2026 (agregados hallazgos de entorno productivo y requisitos de sistema, sugeridos por el equipo local INDEC)
+> Última actualización: 02/09/2026 (agregada revisión de Structure/Coherence/Accessibility de la documentación)
 
 ---
 
@@ -189,6 +189,14 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 | --- | --- | --- |
 | 41 | **Ninguna de las guías (R, Python, Methodology) documenta requisitos de entorno productivo**: no se especifica arquitectura de despliegue institucional (servidor propio, contenedores/Docker, orquestación), versiones mínimas de infraestructura, ni cómo actualizar o escalar el sistema de forma sostenible más allá de que una persona clone el repositorio en su notebook personal y lo corra localmente. Esto es relevante para interoperabilidad institucional — un NSO que quiera poner esta herramienta en producción no tiene ninguna guía de cómo hacerlo más allá del uso individual documentado. Feedback explícito del equipo local (INDEC) tras revisar los hallazgos preliminares. | Major |
 | 42 | **La documentación no especifica requisitos de sistema a nivel institucional** (más allá del punto ya cubierto en el Amendment #26 sobre memoria/hardware para correr el pipeline localmente): no hay indicación de qué necesitaría un servidor institucional para correr esto de forma sostenida para múltiples usuarios o países en simultáneo, ni de compatibilidad de versiones de sistema operativo/dependencias a nivel de despliegue. Feedback explícito del equipo local (INDEC). | Major |
+| 43 | **[Documentación, Structure and Organisation]** Numeración de secciones duplicada, idéntica en ambas guías (R y Python User Guide): existen dos secciones "6.3" (*"Run the script"* y *"Outputs"*, esta última debería ser 6.4), con el corrimiento de numeración propagándose a las secciones siguientes. Que el error sea idéntico en ambos documentos sugiere que una guía se usó como plantilla de la otra. | Minor |
+| 44 | **[Documentación, Structure and Organisation]** La Python User Guide salta de la sección "2.1" directo a "2.3" — no existe una sección "2.2". | Minor |
+| 45 | **[Documentación, Coherence]** El ejemplo de configuración en la sección 4.4 de la R User Guide usa `Population_filepath:` (con mayúscula inicial), inconsistente con `population_filepath` (minúscula) usado en el resto del mismo documento y en el código real. Copiar el ejemplo literal no funcionaría. | Minor |
+| 46 | **[Documentación, Accessibility]** El acrónimo "PBF" (formato `.osm.pbf`) se usa decenas de veces en ambas guías sin expandirse nunca la primera vez que aparece, contradiciendo el ítem del Style Guide citado en la propia Acceptance Criteria: *"Wrote out acronyms in full on first use within each section."* La Methodology, en cambio, sí expande correctamente otros acrónimos (LMICs, OSM) — la inconsistencia es puntual de las guías de R/Python, no generalizada. | Minor |
+
+**Nota positiva [Documentación, Coherence]:** el alt text de figuras (flowcharts embebidos en las guías) sí está presente vía comentarios, cumpliendo correctamente ese ítem específico del Style Guide.
+
+**Con los Amendments #43-46, el criterio "Style Guide" de la Acceptance Criteria (marcado "Yes" por el Developer, específicamente citando *"Checked chapter and section numbering"* y *"Wrote out acronyms in full on first use"* como parte de lo ya cumplido) debería revisarse a Partial** — hay evidencia concreta de que esos dos puntos puntuales no se verificaron del todo, aunque el grueso de la documentación sí cumple razonablemente bien con el resto de los ítems del Style Guide (introducción/resumen por capítulo, alt text de imágenes, terminología explicada).
 
 **Nota [Python, revisión de código]:** `fix_quarto_static_assets.py` es un script de utilidad no documentado en ninguna guía que parchea manualmente assets estáticos generados por Quarto en el `app.py` del dashboard — sugiere que el Developer ya conocía fricciones en el proceso de build del dashboard (posiblemente relacionado con el Amendment #23 de `nbclient` faltante).
 
@@ -205,9 +213,30 @@ Ver detalle completo en Amendments. Resumen: calidad general buena (manejo de er
 | Technical accuracy | **No** | Ídem — no se puede confiar en que ambas implementaciones den resultados técnicamente correctos y equivalentes |
 | Prerequisite skills and knowledge | **No** | No se especifican requisitos de memoria/hardware (Amendment #26), ni de entorno productivo/interoperabilidad institucional (Amendments #41, #42); tampoco se advierte la necesidad de cambiar de rama de git para el workflow subnacional (Amendment #4) |
 
-### Structure and Organisation / Coherence / Accessibility
+### Structure and Organisation
 
-*(pendiente — no evaluado en detalle en esta sesión)*
+| Criteria | Met? | Action required / queries |
+| --- | --- | --- |
+| Headings and Subheadings | **Partial** | Numeradas y en general consistentes con el estilo *"1. Chapter, 1.1 Section"* del Style Guide, pero con numeración duplicada/salteada real (Amendments #43, #44) |
+| Logical Flow | ✅ Sí | Orden lógico consistente en ambas guías: introducción → instalación → configuración → preparación de datos → análisis → dashboard → troubleshooting |
+| Segmented content | ✅ Sí | Contenido bien segmentado en secciones y subsecciones digeribles |
+| Conciseness | ✅ Sí | Sin redundancia mayor detectada, más allá de la tabla de información de Unidad repetida al inicio de cada guía (esperable, es parte de la plantilla, no repetición evitable) |
+
+### Coherence
+
+| Criteria | Met? | Action required / queries |
+| --- | --- | --- |
+| Style Guide | **Partial** | El Developer marcó "Yes" en la Acceptance Criteria citando específicamente "chapter and section numbering" y "acronyms in full on first use" como cumplidos — evidencia real contradice ambos puntos (Amendments #43, #44, #46). El resto del Style Guide (introducciones por capítulo, terminología, alt text) sí se cumple razonablemente |
+| Figure alignment | ✅ Sí, con nota positiva | Alt text presente y consistente para figuras embebidas (flowcharts) vía comentarios. Se detectó un caso de inconsistencia en un ejemplo de config (Amendment #45), no relacionado a figuras en sí |
+
+### Accessibility
+
+| Criteria | Met? | Action required / queries |
+| --- | --- | --- |
+| Clarity | ✅ Sí | Contenido escrito en inglés técnico claro, apropiado para el público objetivo (practitioners con conocimiento previo de geoespacial) |
+| Terminology | **Partial** | La mayoría de los términos técnicos se explican adecuadamente (LTS, WorldPop, r5r/r5py). Excepción puntual: acrónimo "PBF" nunca expandido (Amendment #46) |
+| Grammar and Spelling | ✅ Sin errores mayores detectados | |
+| Macros in spreadsheets | N/A — no aplica a esta Unidad | |
 
 ### QA checklist for code
 
